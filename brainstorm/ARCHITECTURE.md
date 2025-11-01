@@ -39,21 +39,21 @@ This is a complete build of the Contextiva project following modern software eng
 
 ```
 ┌─────────────────────────────────────────────┐
-│           API Layer (FastAPI)                │
-│  - REST endpoints                            │
-│  - Request/Response DTOs                     │
-│  - Dependency injection                      │
+│           API Layer (FastAPI)               │
+│  - REST endpoints                           │
+│  - Request/Response DTOs                    │
+│  - Dependency injection                     │
 └─────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────┐
-│         Application Layer                    │
+│         Application Layer                   │
 │  - Use Cases (business operations)          │
-│  - Application Services                      │
+│  - Application Services                     │
 │  - DTOs and Mappers                         │
 └─────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────┐
-│           Domain Layer                       │
+│           Domain Layer                      │
 │  - Entities & Aggregates                    │
 │  - Value Objects                            │
 │  - Domain Events                            │
@@ -61,7 +61,7 @@ This is a complete build of the Contextiva project following modern software eng
 └─────────────────────────────────────────────┘
                     ↓
 ┌─────────────────────────────────────────────┐
-│       Infrastructure Layer                   │
+│       Infrastructure Layer                  │
 │  - Repositories (Supabase)                  │
 │  - External Services (LLM, Embeddings)      │
 │  - Cache (Redis)                            │
