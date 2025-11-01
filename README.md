@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Contextiva Logo](https://via.placeholder.com/200x200?text=Contextiva)
+![Contextiva Logo](/assets/logos/Main%20Banner.png)
 
 **Empower AI Agents with Contextual Knowledge**
 
