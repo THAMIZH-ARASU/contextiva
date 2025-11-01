@@ -266,16 +266,17 @@ API_CORS_ORIGINS=["*"]
 
 ```mermaid
 graph TD
+
     %% === Top Layer: Clients ===
-    A[AI Agents / Clients]:::client
-    
-    A --> B1[REST API (FastAPI)]:::api
-    A --> B2[MCP Server]:::api
-    A --> B3[Agent Server]:::api
+    A[AI Agents / Clients]
+
+    A --> B1[REST API - FastAPI]
+    A --> B2[MCP Server]
+    A --> B3[Agent Server]
 
     %% === Application Layer ===
     subgraph C[Application Layer]
-        subgraph C1[Use Cases (Business Operations)]
+        subgraph C1[Use Cases - Business Operations]
             C11[CreateProject]
             C12[IngestDocument]
             C13[SearchKnowledge]
@@ -296,8 +297,8 @@ graph TD
     %% === Domain Layer ===
     subgraph D[Domain Layer]
         subgraph D1[Entities & Aggregates]
-            D11[Project (Root)]
-            D12[Document (Root)]
+            D11[Project - Root]
+            D12[Document - Root]
             D13[Task]
             D14[KnowledgeItem]
         end
@@ -309,25 +310,20 @@ graph TD
 
     %% === Infrastructure Layer ===
     subgraph E[Infrastructure Layer]
-        subgraph E1[Repositories (Data Access)]
+        subgraph E1[Repositories - Data Access]
             E11[Supabase Client]
             E12[PostgreSQL + pgvector]
         end
 
         subgraph E2[External Services]
-            E21[LLM Providers (OpenAI, etc.)]
+            E21[LLM Providers - OpenAI, etc.]
             E22[Embedding Services]
             E23[Web Crawler]
-            E24[Cache (Redis)]
+            E24[Cache - Redis]
         end
     end
 
     D --> E
-
-    %% === Styling ===
-    classDef client fill:#0ff,stroke:#000,color:#000,stroke-width:1px;
-    classDef api fill:#6cf,stroke:#000,color:#000,stroke-width:0.5px;
-    classDef default fill:#fff,stroke:#000,color:#000,stroke-width:0.5px;
 ```
 
 ## 🔧 Development
