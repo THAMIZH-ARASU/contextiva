@@ -15,6 +15,7 @@
 </div>
 
 ---
+<div style="text-align: justify;">
 
 ## 🎯 Overview
 
@@ -533,6 +534,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Service mesh integration
 - [ ] Multi-modal RAG (images, audio)
 - [ ] Agent marketplace
+
+</div>
 
 ---
 

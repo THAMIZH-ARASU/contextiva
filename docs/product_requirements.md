@@ -1,3 +1,5 @@
+<div style="text-align: justify;">
+
 # Contextiva Product Requirements Document (PRD)
 
 ## Goals and Background Context
@@ -255,3 +257,4 @@ As a an AI Agent (programmatic client), I want to connect to a Model Context Pro
 - The MCP server is secured using the same JWT authentication logic as the REST API.
 - E2E tests are created to connect to the MCP server (e.g., via a simple client) and execute a basic query_knowledge tool call.
 
+</div>

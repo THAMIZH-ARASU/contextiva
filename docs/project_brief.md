@@ -1,3 +1,5 @@
+<div style="text-align: justify;">
+
 # Contextiva Project Brief Document
 
 ## Executive Summary
@@ -253,3 +255,5 @@ No specific stakeholder feedback was included in the provided project documentat
         - Supabase
         - LangChain (for concepts)
         - OpenAI
+
+</div>

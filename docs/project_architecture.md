@@ -1,3 +1,5 @@
+<div style="text-align: justify;">
+
 # Contextiva Architecture Document
 
 ## Introduction
@@ -1013,3 +1015,4 @@ contextiva/
 - **DAST Tool**: (Deferred to post-MVP).
 - **Penetration Testing**: (Deferred to post-MVP).
 
+</div>
