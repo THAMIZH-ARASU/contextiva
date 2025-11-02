@@ -1,4 +1,4 @@
-# Project Brief: Contextiva
+# Contextiva Project Brief Document
 
 ## Executive Summary
 Contextiva is a modern, production-ready knowledge engine designed specifically to empower AI agents with contextual knowledge. The primary problem it solves is the lack of a persistent, intelligent, and accessible knowledge store for AI systems, enabling them to move beyond simple stateless tasks.
