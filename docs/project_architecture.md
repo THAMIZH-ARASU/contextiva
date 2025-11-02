@@ -28,44 +28,44 @@ This architecture establishes a Modular Monolith for the Contextiva service, bui
 ### High Level Project Diagram
 ```mermaid
 graph TD
-    subgraph User/Client
-        A[AI Agent / Developer]
+    subgraph User_Client["User / Client"]
+        A["AI Agent / Developer"]
     end
 
-    subgraph Contextiva Service (Modular Monolith)
-        subgraph B[API Layer (FastAPI)]
-            B1[REST API (/api/v1)]
-            B2[MCP Server]
-            B3[Security (JWT/RBAC)]
-            B4[Pydantic Validation]
+    subgraph Contextiva_Service["Contextiva Service — Modular Monolith"]
+        subgraph B["API Layer — FastAPI"]
+            B1["REST API (/api/v1)"]
+            B2["MCP Server"]
+            B3["Security (JWT / RBAC)"]
+            B4["Pydantic Validation"]
         end
 
-        subgraph C[Application Layer (Use Cases)]
-            C1[ProjectService]
-            C2[DocumentService]
-            C3[TaskService]
-            C4[RAGService]
+        subgraph C["Application Layer — Use Cases"]
+            C1["ProjectService"]
+            C2["DocumentService"]
+            C3["TaskService"]
+            C4["RAGService"]
         end
 
-        subgraph D[Domain Layer (Entities)]
-            D1[Project]
-            D2[Document]
-            D3[Task]
-            D4[KnowledgeItem]
+        subgraph D["Domain Layer — Entities"]
+            D1["Project"]
+            D2["Document"]
+            D3["Task"]
+            D4["KnowledgeItem"]
         end
 
-        subgraph E[Infrastructure Layer]
-            E1[Repositories (pgvector)]
-            E2[LLM/Embedding Factory]
-            E3[Cache (Redis)]
-            E4[Web Crawler]
+        subgraph E["Infrastructure Layer"]
+            E1["Repositories (pgvector)"]
+            E2["LLM / Embedding Factory"]
+            E3["Cache (Redis)"]
+            E4["Web Crawler"]
         end
     end
 
-    subgraph External Dependencies
-        F[Database (PostgreSQL w/ pgvector)]
-        G[Cache (Redis)]
-        H[LLM Providers (OpenAI, Ollama, etc.)]
+    subgraph External_Dependencies["External Dependencies"]
+        F["Database (PostgreSQL + pgvector)"]
+        G["Cache (Redis)"]
+        H["LLM Providers (OpenAI, Ollama, etc.)"]
     end
 
     A --> B1
@@ -211,24 +211,24 @@ graph TD
         direction TB
 
         subgraph "API Layer"
-            A1[REST API (FastAPI)]
-            A2[MCP Server]
+            A1["REST API (FastAPI)"]
+            A2["MCP Server"]
         end
 
         subgraph "Application Layer"
-            B[Use Cases (e.g., RAGService)]
+            B["Use Cases (e.g., RAGService)"]
         end
 
         subgraph "Domain Layer"
-            C[Entities (Project, Document, Task)]
-            D[Repository Interfaces (IProjectRepository)]
+            C["Entities (Project, Document, Task)"]
+            D["Repository Interfaces (IProjectRepository)"]
         end
 
         subgraph "Infrastructure Layer"
-            E[Postgres Repositories (pgvector)]
-            F[LLM/Embedding Factory]
-            G[Redis Cache Client]
-            H[Web Crawler]
+            E["Postgres Repositories (pgvector)"]
+            F["LLM / Embedding Factory"]
+            G["Redis Cache Client"]
+            H["Web Crawler"]
         end
     end
 
@@ -243,16 +243,19 @@ graph TD
     E --> C
     E --> D
 
-    %% Style
-    style A1 fill:#D6EAF8
-    style A2 fill:#D6EAF8
-    style B fill:#D1F2EB
-    style C fill:#FEF9E7
-    style D fill:#FEF9E7
-    style E fill:#FADBD8
-    style F fill:#FADBD8
-    style G fill:#FADBD8
-    style H fill:#FADBD8
+    %% Enhanced Layer Colors
+    style A1 fill:#1F77B4,stroke:#0D3B66,stroke-width:2px,color:#FFFFFF
+    style A2 fill:#1F77B4,stroke:#0D3B66,stroke-width:2px,color:#FFFFFF
+
+    style B fill:#2CA02C,stroke:#145A32,stroke-width:2px,color:#FFFFFF
+
+    style C fill:#FFBF00,stroke:#B9770E,stroke-width:2px,color:#000000
+    style D fill:#FFBF00,stroke:#B9770E,stroke-width:2px,color:#000000
+
+    style E fill:#E74C3C,stroke:#922B21,stroke-width:2px,color:#FFFFFF
+    style F fill:#E74C3C,stroke:#922B21,stroke-width:2px,color:#FFFFFF
+    style G fill:#E74C3C,stroke:#922B21,stroke-width:2px,color:#FFFFFF
+    style H fill:#E74C3C,stroke:#922B21,stroke-width:2px,color:#FFFFFF
 ```
 
 ## External APIs
@@ -365,11 +368,11 @@ sequenceDiagram
     App-->>-API: RAGResult(answer="...", chunks=[...])
     API-->>-Client: 200 OK (RAGResult)
 
-    alt Query Fails (e.g., DB Error) 
+    alt Query Fails (e.g., DB Error)
         App->>+Infra_KB: hybrid_search(...)
         Infra_KB-->>-App: DatabaseConnectionError
-        App-->>-API: Error(code="DB_ERROR", ...)
-        API-->>-Client: 500 Internal Server Error
+        App-->>API: Error(code="DB_ERROR", ...)
+        API-->>Client: 500 Internal Server Error
     end
 ```
 
