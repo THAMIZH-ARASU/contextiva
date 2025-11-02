@@ -89,7 +89,7 @@ As a AI Agent Developer, I want a new project repository initialized with the co
 #### Acceptance Criteria:
 - A pyproject.toml file is created, managed by poetry, with Python 3.11+ specified.
 - Core dependencies are added: fastapi, pydantic, uvicorn, asyncpg (for Supabase/PostgreSQL), redis, python-jose[cryptography] (for JWT), and passlib[bcrypt] (for auth).
-- The complete Clean Architecture directory structure is scaffolded (e.g., src/api, src/application, src/domain, src/infrastructure, src/shared).
+- The complete Clean Architecture directory structure is scaffolded (e.g., `src/api`, `src/application`, `src/domain`, `src/infrastructure`, `src/shared`).
 - Basic alembic migration setup is created in a migration/ folder.
 - Base configuration files are created: README.md, .env.example, .gitignore, and a docker-compose.yml (defining api, postgres, and redis services).
 - `src/api/main.py` is created with a basic FastAPI app instance and a `/api/docs` (Swagger) endpoint.
@@ -110,9 +110,9 @@ The health check endpoint (GET `/api/v1/health`) is updated to successfully veri
 As a AI Agent Developer, I want the Project domain model, repository interface, and concrete implementation defined, so that I can build business logic independent of the database.
 
 #### Acceptance Criteria:
-- The Project entity is defined in src/domain/models/project.py with core attributes (id, name, description, status, tags) and business rules (NFR1).
-- The IProjectRepository abstract base class (interface) is defined in src/domain/models/project.py.
-- The concrete ProjectRepository implementation is created in src/infrastructure/database/repositories/project_repository.py, implementing the interface.
+- The Project entity is defined in `src/domain/models/project.py` with core attributes (id, name, description, status, tags) and business rules (NFR1).
+- The IProjectRepository abstract base class (interface) is defined in `src/domain/models/project.py`.
+- The concrete ProjectRepository implementation is created in `src/infrastructure/database/repositories/project_repository.py`, implementing the interface.
 - Unit tests for the Project domain model's business logic (if any) are created.
 - Integration tests for the ProjectRepository are created, verifying all CRUD operations against a test database.
 
@@ -120,11 +120,11 @@ As a AI Agent Developer, I want the Project domain model, repository interface, 
 As a AI Agent Developer, I want a basic JWT token creation and validation system in place, so that I can secure all future API endpoints.
 
 #### Acceptance Criteria:
-- A security utility module is created to handle JWT token creation (e.g., create_access_token) and decoding/validation (NFR2).
+- A security utility module is created to handle JWT token creation (e.g., `create_access_token`) and decoding/validation (NFR2).
 - A basic User domain model (with hashed_password) and UserRepository are created (following the pattern from 1.3).
-- A simple POST /api/v1/auth/token endpoint is created that accepts a username/password (for testing) and returns a valid JWT.
+- A simple POST `/api/v1/auth/token` endpoint is created that accepts a username/password (for testing) and returns a valid JWT.
 - A FastAPI dependency (get_current_user) is created to protect endpoints, which validates the JWT and returns the user model.
-- Stub files/classes for Role-Based Access Control (RBAC) are created (e.g., in src/api/dependencies.py), but the complex logic is deferred (NFR2).
+- Stub files/classes for Role-Based Access Control (RBAC) are created (e.g., in `src/api/dependencies.py`), but the complex logic is deferred (NFR2).
 
 ### Story 1.5: Project Management API (CRUD)
 As a AI Agent Developer, I want to perform full CRUD operations on Projects via the secured REST API, so that I can manage my agent's knowledge projects.
@@ -145,9 +145,9 @@ As a AI Agent Developer, I want to perform full CRUD operations on Projects via 
 As a AI Agent Developer, I want the Document, Task, and KnowledgeItem domain models and repositories defined, so that I can build the core ingestion and tracking logic.
 
 #### Acceptance Criteria:
-- The Document entity is defined in src/domain/models/document.py, including attributes for project_id, name, type, version, and content_hash. It must support semantic versioning (NFR1, FR3).
-- The Task entity is defined in src/domain/models/task.py, including attributes for project_id, title, status, priority, assignee, and dependencies (NFR1, FR5).
-- The KnowledgeItem entity is defined in src/domain/models/knowledge.py, including document_id, chunk_text, embedding (using pgvector's Vector type), and metadata.
+- The Document entity is defined in `src/domain/models/document.py`, including attributes for `project_id`, `name`, `type`, `version`, and `content_hash`. It must support semantic versioning (NFR1, FR3).
+- The Task entity is defined in `src/domain/models/task.py`, including attributes for `project_id`, `title`, `status`, `priority`, `assignee`, and `dependencies` (NFR1, FR5).
+- The KnowledgeItem entity is defined in `src/domain/models/knowledge.py`, including `document_id`, `chunk_text`, `embedding` (using pgvector's Vector type), and `metadata`.
 - Respective repository interfaces (IDocumentRepository, ITaskRepository, IKnowledgeRepository) and concrete PostgreSQL implementations are created (NFR1).
 - Alembic migrations are created to establish the new documents, tasks, and knowledge_items tables, including the vector column on knowledge_items.
 - Unit tests are created for the domain models, and integration tests are created for the repositories.
@@ -167,12 +167,12 @@ As a AI Agent Developer, I want to perform full CRUD and versioning operations o
 
 #### Acceptance Criteria:
 - All endpoints are protected by the JWT authentication dependency (from Story 1.4).
-- POST /api/v1/documents: Creates a new document (v1.0.0) linked to a project.
-- GET /api/v1/documents: Lists all documents for a given project, with pagination.
-- GET /api/v1/documents/{id}: Retrieves a specific document (defaults to latest version). Can query for a specific version.
-- PUT /api/v1/documents/{id}: Updates the metadata (e.g., name, tags) of a document.
-- DELETE /api/v1/documents/{id}: Deletes a document.
-- POST /api/v1/documents/{id}/version: Creates a new version of an existing document (e.g., v1.0.1) (FR3).
+- POST `/api/v1/documents`: Creates a new document (v1.0.0) linked to a project.
+- GET `/api/v1/documents`: Lists all documents for a given project, with pagination.
+- GET `/api/v1/documents/{id}`: Retrieves a specific document (defaults to latest version). Can query for a specific version.
+- PUT `/api/v1/documents/{id}`: Updates the metadata (e.g., name, tags) of a document.
+- DELETE `/api/v1/documents/{id}`: Deletes a document.
+- POST `/api/v1/documents/{id}/version`: Creates a new version of an existing document (e.g., v1.0.1) (FR3).
 - E2E tests are created for all endpoints, verifying functionality, auth, and validation.
 
 ### Story 2.4: Task Management API (CRUD)
@@ -180,18 +180,18 @@ As a AI Agent Developer, I want to perform full CRUD operations on Tasks via the
 
 #### Acceptance Criteria:
 - All endpoints are protected by the JWT authentication dependency.
-- POST /api/v1/tasks: Creates a new task linked to a project (FR5).
-- GET /api/v1/tasks: Lists all tasks for a given project, with filtering by status or assignee.
-- GET /api/v1/tasks/{id}: Retrieves a single task by its ID.
-- PUT /api/v1/tasks/{id}: Updates a task (e.g., status, priority, assignee) (FR5).
-- DELETE /api/v1/tasks/{id}: Deletes a task.
+- POST `/api/v1/tasks`: Creates a new task linked to a project (FR5).
+- GET `/api/v1/tasks`: Lists all tasks for a given project, with filtering by status or assignee.
+- GET `/api/v1/tasks/{id}`: Retrieves a single task by its ID.
+- PUT `/api/v1/tasks/{id}`: Updates a task (e.g., status, priority, assignee) (FR5).
+- DELETE `/api/v1/tasks/{id}`: Deletes a task.
 - E2E tests are created for all endpoints.
 
 ### Story 2.5: Knowledge Ingestion - File Upload Pipeline
 As a AI Agent Developer, I want to upload a file (MD, PDF, DOCX, HTML) to an endpoint, so that it is automatically processed, chunked, embedded, and stored as KnowledgeItems.
 
 #### Acceptance Criteria:
-- A new endpoint POST /api/v1/knowledge/upload is created that accepts a file upload (FR6).
+- A new endpoint POST `/api/v1/knowledge/upload` is created that accepts a file upload (FR6).
 - The endpoint creates a new Document (using logic from 2.3) to represent the file.
 - The system correctly extracts text content from the supported file types (MD, PDF, DOCX, HTML) (FR4).
 - The extracted text is passed to a text chunker (e.g., semantic chunking).
@@ -203,7 +203,7 @@ As a AI Agent Developer, I want to upload a file (MD, PDF, DOCX, HTML) to an end
 As a AI Agent Developer, I want to submit a URL to an endpoint, so that the web page is automatically crawled, processed, embedded, and stored as KnowledgeItems.
 
 #### Acceptance Criteria:
-- A new endpoint POST /api/v1/knowledge/crawl is created that accepts a URL and a project ID (FR7).
+- A new endpoint POST `/api/v1/knowledge/crawl` is created that accepts a URL and a project ID (FR7).
 - A web crawling service (e.g., using httpx and BeautifulSoup) is created to fetch and parse the HTML content from the URL.
 - The endpoint creates a new Document (using logic from 2.3) to represent the crawled page.
 - The extracted text is processed, chunked, embedded, and stored as KnowledgeItems, following the same pipeline as Story 2.5 (FR8).
@@ -217,28 +217,28 @@ As a AI Agent Developer, I want to submit a URL to an endpoint, so that the web 
 As a AI Agent Developer, I want a secured API endpoint to send a text query, so that I can receive the most relevant KnowledgeItems from my project.
 
 #### Acceptance Criteria:
-- A new endpoint POST /api/v1/rag/query is created and secured using the JWT authentication dependency (from Story 1.4).
+- A new endpoint POST `/api/v1/rag/query` is created and secured using the JWT authentication dependency (from Story 1.4).
 - The endpoint accepts a Pydantic schema containing at least project_id and query_text.
 - The incoming query_text is converted to an embedding using the configured Embedding Provider (from Story 2.2).
 - The system performs a vector similarity search (using pgvector) against KnowledgeItems that match the project_id.
-- The search MUST return the top-K (e.g., K=5, configurable via settings.py) matching KnowledgeItem chunks.
+- The search MUST return the top-K (e.g., K=5, configurable via `settings.py`) matching KnowledgeItem chunks.
 - E2E tests are created to ingest a document (using the API from Story 2.5) and then successfully query for its content.
 
 ### Story 3.2: Advanced RAG - Hybrid Search & Re-ranking
 As a AI Agent Developer, I want the RAG query endpoint to optionally support Hybrid Search and Re-ranking, so that I can improve the relevance of my search results (FR10).
 
 #### Acceptance Criteria:
-- The POST /api/v1/rag/query endpoint is updated to accept optional boolean flags: use_hybrid_search and use_re_ranking.
-- If use_hybrid_search is true, the system performs both vector search (from 3.1) and traditional keyword search (e.g., BM25/full-text search) and merges the results.
-- If use_re_ranking is true, the initial set of retrieved chunks (from AC 3.1.5 or 3.2.2) is passed to an LLM provider (from Story 2.2) to re-rank them for relevance to the original query.
-- Configuration in settings.py is added to enable/disable these features by default (e.g., RAG_USE_HYBRID_SEARCH=false, RAG_USE_RERANKING=false).
+- The POST `/api/v1/rag/query` endpoint is updated to accept optional boolean flags: `use_hybrid_search` and `use_re_ranking`.
+- If `use_hybrid_search` is true, the system performs both vector search (from 3.1) and traditional keyword search (e.g., BM25/full-text search) and merges the results.
+- If `use_re_ranking` is true, the initial set of retrieved chunks (from AC 3.1.5 or 3.2.2) is passed to an LLM provider (from Story 2.2) to re-rank them for relevance to the original query.
+- Configuration in `settings.py` is added to enable/disable these features by default (e.g., RAG_USE_HYBRID_SEARCH=false, RAG_USE_RERANKING=false).
 - E2E tests are updated to validate the behavior when these flags are enabled and disabled.
 
 ### Story 3.3: Advanced RAG - Agentic RAG (Synthesis)
 As a AI Agent Developer, I want the RAG query endpoint to optionally return a synthesized, natural language answer, so that my agent can consume a direct response instead of just raw chunks (FR10).
 
 #### Acceptance Criteria:
-- The POST /api/v1/rag/query endpoint is updated to accept an optional boolean flag: use_agentic_rag.
+- The POST `/api/v1/rag/query` endpoint is updated to accept an optional boolean flag: use_agentic_rag.
 - If use_agentic_rag is true, the system takes the final (re-ranked) chunks, along with the original query, and passes them to an LLM provider (from Story 2.2) with a "summarize" or "answer based on context" prompt.
 - The API response is updated to include a new optional field, synthesized_answer, containing the LLM's natural language response.
 - Configuration in settings.py is added to enable/disable this feature by default (RAG_USE_AGENTIC=false).
@@ -248,7 +248,7 @@ As a AI Agent Developer, I want the RAG query endpoint to optionally return a sy
 As a an AI Agent (programmatic client), I want to connect to a Model Context Protocol (MCP) server, so that I can natively interact with the Contextiva knowledge engine (FR12).
 
 #### Acceptance Criteria:
-- An mcp/server.py file is created that implements the MCP specification, as defined in the project structure.
+- An `mcp/server.py` file is created that implements the MCP specification, as defined in the project structure.
 - The MCP server is configured as a new service (mcp) in the docker-compose.yml file.
 - The MCP server re-uses the application services (e.g., ProjectService, RAGService) to fulfill agent requests.
 - MCP tools are defined for core agent actions: create_project, ingest_document, and query_knowledge.
