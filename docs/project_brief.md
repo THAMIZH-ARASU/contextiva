@@ -232,3 +232,24 @@ These considerations are not preferences but are the defined, core architecture 
 - **Advanced RAG Strategies (v2.2)**: The roadmap explicitly calls this out. Research is needed into more advanced retrieval, re-ranking, and synthesis techniques to stay ahead of basic RAG implementations.
 - **Multi-modal RAG (v3.0)**: A significant research effort is required to determine the best-practice architecture for ingesting, chunking, embedding, and querying against image and audio data.
 - **Microservices Decomposition (v3.0)**: The migration path from the v2.0 monolith to a full microservices architecture needs to be researched and defined. This includes identifying service boundaries, managing inter-service communication (via a service mesh), and handling distributed transactions.
+
+## Appendices
+
+### A. Research Summary 
+No formal market research, competitive analysis, or user interview documents were provided for this brief. However, the project's "Acknowledgments" section and technical differentiation imply a competitive analysis against frameworks like LangChain, and the "Architecture" section indicates a deep analysis of software design principles (DDD, Clean Architecture, SOLID).
+
+### B. Stakeholder Input 
+No specific stakeholder feedback was included in the provided project documentation.
+
+### C. References 
+- **Website**: https://contextiva.dev
+- **Documentation**: https://docs.contextiva.dev
+- **Blog**: https://blog.contextiva.dev
+- **GitHub Issues**: https://github.com/yourusername/contextiva/issues
+- **GitHub Discussions**: https://github.com/yourusername/contextiva/discussions
+- **Key Technology Acknowledgments**:
+        - FastAPI
+        - Pydantic
+        - Supabase
+        - LangChain (for concepts)
+        - OpenAI
