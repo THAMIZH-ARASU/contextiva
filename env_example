@@ -42,5 +42,10 @@ OBS_LOG_LEVEL=INFO
 OBS_LOGFIRE_ENABLED=false
 OBS_LOGFIRE_TOKEN=your-token
 
+# Security & Authentication
+JWT_SECRET=change-this-to-a-secure-random-secret-key
+JWT_ALGORITHM=HS256
+JWT_EXPIRES_MINUTES=30
+
 # CORS (optional)
 API_CORS_ORIGINS=["*"]
