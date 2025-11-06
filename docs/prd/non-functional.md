@@ -1,0 +1,12 @@
+# Non-Functional
+- **NFR1 (Architecture)**: The system MUST be built following Clean Architecture and Domain-Driven Design (DDD) principles, with a clear separation of API, Application, Domain, and Infrastructure layers.
+- **NFR2 (Security - Auth)**: The system MUST support JWT tokens for authenticating API requests and implement Role-Based Access Control (RBAC).
+- **NFR3 (Security - API)**: The system MUST implement Rate Limiting, CORS policies, and use Pydantic for all input validation to protect against common web vulnerabilities.
+- **NFR4 (Security - Data)**: The system MUST protect against SQL Injection via the use of parameterized queries and the repository pattern.
+- **NFR5 (Performance - Async)**: The system MUST be built using FastAPI and leverage async/await for all non-blocking I/O operations to ensure high throughput.
+- **NFR6 (Performance - Caching)**: The system MUST use Redis for caching frequently repeated queries.
+- **NFR7 (Performance - Throughput)**: The system MUST be optimized to handle target benchmarks (e.g., 2000 req/s for reads, 100 req/s for search) and use batch processing for bulk operations.
+- **NFR8 (Extensibility)**: The system MUST use a Factory Pattern for LLM and embedding services to allow for pluggable support, minimally including OpenAI, Anthropic, Ollama, and OpenRouter.
+- **NFR9 (Observability)**: The system MUST provide Structured Logging (JSON), Request Tracing, Error Tracking, and Health Check endpoints.
+- **NFR10 (Deployment)**: The system MUST be fully containerized and deployable via the provided docker-compose.yml and include k8s/ configurations.
+- **NFR11 (Database)**: The system MUST use a PostgreSQL-compatible database with the pgvector extension.
