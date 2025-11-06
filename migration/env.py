@@ -26,7 +26,8 @@ def _build_sync_db_url_from_env() -> str:
 
 def run_migrations_offline() -> None:
     url = _build_sync_db_url_from_env()
-    config.set_main_option("sqlalchemy.url", url)
+    # Escape % for ConfigParser interpolation rules
+    config.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
     context.configure(url=url, literal_binds=True, dialect_opts={"paramstyle": "named"})
 
     with context.begin_transaction():
@@ -36,7 +37,7 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     # Override URL from environment (.env) to avoid hardcoding credentials in alembic.ini
     url = _build_sync_db_url_from_env()
-    config.set_main_option("sqlalchemy.url", url)
+    config.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
 
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
