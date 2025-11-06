@@ -1,0 +1,46 @@
+# Application
+APP_ENV=local
+APP_HOST=0.0.0.0
+APP_PORT=8000
+
+# Database (used by app and Alembic migrations)
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=contextiva
+POSTGRES_USER=your-user
+POSTGRES_PASSWORD=your-password
+
+# LLM Provider
+LLM_PROVIDER=openai  # openai, anthropic, ollama, openrouter
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
+LLM_TEMPERATURE=0.3
+LLM_MAX_TOKENS=2000
+
+# Embeddings
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSIONS=1536
+EMBEDDING_USE_CONTEXTUAL=false
+
+# RAG Configuration
+RAG_CHUNK_SIZE=5000
+RAG_CHUNK_OVERLAP=200
+RAG_MATCH_COUNT=5
+RAG_SIMILARITY_THRESHOLD=0.05
+RAG_USE_HYBRID_SEARCH=false
+RAG_USE_RERANKING=false
+RAG_USE_AGENTIC=false
+
+# Cache (Optional)
+CACHE_ENABLED=true
+CACHE_REDIS_URL=redis://localhost:6379
+CACHE_TTL=3600
+
+# Observability
+OBS_LOG_LEVEL=INFO
+OBS_LOGFIRE_ENABLED=false
+OBS_LOGFIRE_TOKEN=your-token
+
+# CORS (optional)
+API_CORS_ORIGINS=["*"]
