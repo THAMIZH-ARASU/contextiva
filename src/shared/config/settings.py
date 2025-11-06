@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import quote_plus
 
 
 def _get_env(name: str, default: str | None = None) -> str:
@@ -37,7 +38,9 @@ class DatabaseSettings:
 
     @property
     def dsn(self) -> str:
-        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
+        user_enc = quote_plus(self.user)
+        pwd_enc = quote_plus(self.password)
+        return f"postgresql://{user_enc}:{pwd_enc}@{self.host}:{self.port}/{self.db}"
 
 
 @dataclass(frozen=True)
