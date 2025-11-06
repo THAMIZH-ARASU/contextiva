@@ -123,10 +123,11 @@ git clone https://github.com/yourusername/contextiva.git
 cd contextiva
 ```
 
-2. **Install dependencies**
-```bash
-poetry install
-```
+2. **Install dependencies (optional)**
+   - If you develop locally with Poetry and Python 3.11:
+   ```bash
+   poetry install
+   ```
 
 3. **Configure environment**
 ```bash
@@ -134,14 +135,33 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. **Set up database**
+4. **Run with Docker (Recommended for local)**
 ```bash
-# Run migrations
-poetry run alembic upgrade head
+# Start Postgres (pgvector) and Redis on a shared network
+docker network create contextiva-net || true
+docker run -d --name contextiva-postgres --network contextiva-net \
+  -e POSTGRES_DB=contextiva -e POSTGRES_USER=tumblrs -e POSTGRES_PASSWORD='Saran@2004' ankane/pgvector:latest
+docker run -d --name contextiva-redis --network contextiva-net redis:7
+
+# Apply migrations (reads env when provided)
+docker run --rm --network contextiva-net -v "$PWD":"/app" -w /app \
+  -e POSTGRES_HOST=contextiva-postgres -e POSTGRES_PORT=5432 \
+  -e POSTGRES_DB=contextiva -e POSTGRES_USER=tumblrs -e POSTGRES_PASSWORD='Saran@2004' \
+  python:3.11 bash -lc "pip install --quiet alembic psycopg2-binary sqlalchemy && alembic upgrade head"
+
+# Start API for development (mounts code)
+docker run -d --name contextiva-api --network contextiva-net -p 8000:8000 \
+  -e APP_ENV=local -e APP_HOST=0.0.0.0 -e APP_PORT=8000 \
+  -e POSTGRES_HOST=contextiva-postgres -e POSTGRES_PORT=5432 \
+  -e POSTGRES_DB=contextiva -e POSTGRES_USER=tumblrs -e POSTGRES_PASSWORD='Saran@2004' \
+  -e REDIS_HOST=contextiva-redis -e REDIS_PORT=6379 -e REDIS_DB=0 \
+  -v "$PWD":"/app" -w /app \
+  python:3.11 bash -lc "pip install --quiet fastapi uvicorn asyncpg redis 'python-jose[cryptography]' 'passlib[bcrypt]' pydantic && uvicorn src.api.main:app --host 0.0.0.0 --port 8000"
 ```
 
-5. **Start the server**
+5. **Start the server (Local/Poetry option)**
 ```bash
+# Use this only if running without Docker
 poetry run uvicorn src.api.main:app --reload --port 8000
 ```
 
@@ -150,7 +170,7 @@ poetry run uvicorn src.api.main:app --reload --port 8000
 http://localhost:8000/api/docs
 ```
 
-### Docker Deployment
+### Docker Deployment (Compose)
 
 ```bash
 # Build and run all services
@@ -208,18 +228,20 @@ POST   /api/v1/knowledge/upload  # Upload file
 
 ### Configuration
 
-#### Environment Variables
+#### Environment Variables (Backend)
 
 ```bash
 # Application
-APP_NAME="Contextiva Knowledge Engine"
-ENVIRONMENT=production
-DEBUG=false
+APP_ENV=local
+APP_HOST=0.0.0.0
+APP_PORT=8000
 
-# Database
-DB_URL=https://your-project.supabase.co
-DB_KEY=your-supabase-key
-DB_SCHEMA=public
+# Database (used by app and Alembic migrations)
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=contextiva
+POSTGRES_USER=your-user
+POSTGRES_PASSWORD=your-password
 
 # LLM Provider
 LLM_PROVIDER=openai  # openai, anthropic, ollama, openrouter
@@ -253,11 +275,7 @@ OBS_LOG_LEVEL=INFO
 OBS_LOGFIRE_ENABLED=false
 OBS_LOGFIRE_TOKEN=your-token
 
-# API Server
-API_HOST=0.0.0.0
-API_PORT=8000
-API_RELOAD=false
-API_WORKERS=4
+# CORS (optional)
 API_CORS_ORIGINS=["*"]
 ```
 
@@ -328,6 +346,17 @@ graph TD
 ```
 
 ## 🔧 Development
+
+### Current Implementation Status
+- Story 1.1 (Foundation & Scaffolding): COMPLETE
+  - FastAPI app at `/api/docs`, health endpoint `/api/v1/health`
+  - Clean Architecture skeleton in `src/`
+  - Poetry project with lint/format/type-check tooling
+- Story 1.2 (DB & Observability): COMPLETE
+  - `asyncpg` connection pool with ping
+  - Alembic baseline + pgvector extension migration
+  - JSON structured logging and request logging middleware (request id, duration)
+  - Health endpoint validates DB connectivity
 
 ### Setup Development Environment
 
@@ -534,6 +563,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Service mesh integration
 - [ ] Multi-modal RAG (images, audio)
 - [ ] Agent marketplace
+
+### In Progress / Next
+- Security & Auth Foundation (Story 1.4): JWT issue & verify, RBAC stubs, auth dependency
+- Project Management API (Story 1.5): CRUD endpoints + E2E tests
+
+### Future Enhancements
+- Knowledge ingestion pipelines (file upload, crawling) with embeddings
+- Advanced RAG: hybrid search, reranking, agentic synthesis
+- MCP server for agent integration
 
 </div>
 
