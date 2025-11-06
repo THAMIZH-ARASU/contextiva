@@ -205,3 +205,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# BMAD files and folders
+bmad-installation.txt
+opencode.jsonc
+AGENTS.md
+
+.bmad-core/
+.cursor/
+.gemini/
+.github/
+.vscode/
+
