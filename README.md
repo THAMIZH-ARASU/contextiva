@@ -10,7 +10,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Features](#✨ Features) • [Quick Start](#🚀 Quick Start) • [Documentation](/docs/)
+[Features](#✨ Features) • [Quick Start](#🚀 Quick Start) • [Documentation](/docs/) • [Contribution](🤝 Contributing)
 
 </div>
 
