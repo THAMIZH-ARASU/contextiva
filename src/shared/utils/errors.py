@@ -14,3 +14,15 @@ class ValidationError(Exception):
     """Raised for domain validation errors when mapping from external inputs."""
 
 
+class DocumentNotFoundError(Exception):
+    """Raised when a Document cannot be found by the provided identifier."""
+
+
+class TaskNotFoundError(Exception):
+    """Raised when a Task cannot be found by the provided identifier."""
+
+
+class KnowledgeItemNotFoundError(Exception):
+    """Raised when a KnowledgeItem cannot be found by the provided identifier."""
+
+
