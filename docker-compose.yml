@@ -17,8 +17,8 @@ services:
     image: ankane/pgvector:latest
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-contextiva}
-      POSTGRES_USER: ${POSTGRES_USER:-contextiva}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_USER: ${POSTGRES_USER:-tumblrs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Saran@2004}
     ports:
       - "5432:5432"
     volumes:

@@ -8,14 +8,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
+from src.domain.models.document import IDocumentRepository
 from src.domain.models.project import IProjectRepository
 from src.domain.models.user import IUserRepository, User
+from src.infrastructure.database.repositories.document_repository import DocumentRepository
 from src.infrastructure.database.repositories.project_repository import ProjectRepository
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.external.llm import ILLMProvider, ProviderFactory
 from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.security import verify_token
-
 
 # OAuth2 scheme for token extraction
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
@@ -35,6 +36,14 @@ async def get_project_repository() -> IProjectRepository:
     """
     pool = await init_pool()
     return ProjectRepository()
+
+
+async def get_document_repository() -> IDocumentRepository:
+    """
+    Dependency to get the document repository instance.
+    """
+    pool = await init_pool()
+    return DocumentRepository(pool)
 
 
 async def get_current_user(

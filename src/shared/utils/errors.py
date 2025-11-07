@@ -18,6 +18,14 @@ class DocumentNotFoundError(Exception):
     """Raised when a Document cannot be found by the provided identifier."""
 
 
+class InvalidDocumentVersionError(Exception):
+    """Raised when a document version format is invalid."""
+
+
+class DuplicateDocumentError(Exception):
+    """Raised when attempting to create a duplicate document content_hash."""
+
+
 class TaskNotFoundError(Exception):
     """Raised when a Task cannot be found by the provided identifier."""
 

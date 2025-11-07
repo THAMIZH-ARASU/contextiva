@@ -5,14 +5,10 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from src.shared.config.settings import load_settings
-
-
-# Password hashing context using bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Load settings
 settings = load_settings()
@@ -28,7 +24,10 @@ def get_password_hash(password: str) -> str:
     Returns:
         The hashed password
     """
-    return pwd_context.hash(password)
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -42,7 +41,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if the password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    password_bytes = plain_password.encode('utf-8')
+    hashed_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -68,7 +69,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
         "iat": datetime.utcnow()
     })
     
-    encoded_jwt = jwt.encode(
+    encoded_jwt: str = jwt.encode(
         to_encode,
         settings.security.jwt_secret,
         algorithm=settings.security.jwt_algorithm
@@ -90,7 +91,7 @@ def verify_token(token: str) -> Dict[str, Any]:
     Raises:
         JWTError: If the token is invalid or expired
     """
-    payload = jwt.decode(
+    payload: Dict[str, Any] = jwt.decode(
         token,
         settings.security.jwt_secret,
         algorithms=[settings.security.jwt_algorithm]
