@@ -9,6 +9,8 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
 from src.domain.models.user import IUserRepository, User
+from src.infrastructure.database.repositories.user_repository import UserRepository
+from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.security import verify_token
 
 
@@ -19,10 +21,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 async def get_user_repository() -> IUserRepository:
     """
     Dependency to get the user repository instance.
-    
-    This should be overridden by the application to provide the actual repository.
     """
-    raise NotImplementedError("UserRepository dependency not configured")
+    pool = await init_pool()
+    return UserRepository(pool)
 
 
 async def get_current_user(

@@ -8,7 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from src.domain.models.user import IUserRepository
+from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.shared.config.settings import load_settings
+from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.security import create_access_token, verify_password
 
 
@@ -17,9 +19,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 async def get_user_repository() -> IUserRepository:
     """Dependency to get the user repository instance."""
-    # This will be properly injected when the application starts
-    # For now, this is a placeholder that will be overridden
-    raise NotImplementedError("UserRepository dependency not configured")
+    pool = await init_pool()
+    return UserRepository(pool)
 
 
 @router.post("/token")
