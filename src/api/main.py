@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from src.shared.config.logging import configure_logging
 from src.shared.infrastructure.database.connection import init_pool, close_pool, ping
 from src.api.middleware.logging_middleware import logging_middleware
-from src.api.v1.routes import auth
+from src.api.v1.routes import auth, projects
 
 
 @asynccontextmanager
@@ -23,6 +23,7 @@ app.middleware("http")(logging_middleware)
 
 # Register routers
 app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
+app.include_router(projects.router, prefix="/api/v1", tags=["projects"])
 
 
 @app.get("/api/v1/health")
