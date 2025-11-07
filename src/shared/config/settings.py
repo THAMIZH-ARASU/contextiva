@@ -58,11 +58,26 @@ class SecuritySettings:
 
 
 @dataclass(frozen=True)
+class LLMSettings:
+    """Configuration for LLM and embedding providers."""
+
+    llm_provider: str
+    embedding_provider: str
+    openai_api_key: str | None
+    anthropic_api_key: str | None
+    ollama_base_url: str
+    openrouter_api_key: str | None
+    default_llm_model: str
+    default_embedding_model: str
+
+
+@dataclass(frozen=True)
 class Settings:
     app: AppSettings
     db: DatabaseSettings
     redis: RedisSettings
     security: SecuritySettings
+    llm: LLMSettings
 
 
 def load_settings() -> Settings:
@@ -88,6 +103,16 @@ def load_settings() -> Settings:
             jwt_secret=os.getenv("JWT_SECRET", "change-this-secret"),
             jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
             jwt_expires_minutes=_get_int("JWT_EXPIRES_MINUTES", 60),
+        ),
+        llm=LLMSettings(
+            llm_provider=os.getenv("LLM_PROVIDER", "openai"),
+            embedding_provider=os.getenv("LLM_EMBEDDING_PROVIDER", "openai"),
+            openai_api_key=os.getenv("LLM_OPENAI_API_KEY"),
+            anthropic_api_key=os.getenv("LLM_ANTHROPIC_API_KEY"),
+            ollama_base_url=os.getenv("LLM_OLLAMA_BASE_URL", "http://localhost:11434"),
+            openrouter_api_key=os.getenv("LLM_OPENROUTER_API_KEY"),
+            default_llm_model=os.getenv("LLM_DEFAULT_LLM_MODEL", "gpt-4o-mini"),
+            default_embedding_model=os.getenv("LLM_DEFAULT_EMBEDDING_MODEL", "text-embedding-3-small"),
         ),
     )
 

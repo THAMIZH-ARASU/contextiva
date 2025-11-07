@@ -12,6 +12,7 @@ from src.domain.models.project import IProjectRepository
 from src.domain.models.user import IUserRepository, User
 from src.infrastructure.database.repositories.project_repository import ProjectRepository
 from src.infrastructure.database.repositories.user_repository import UserRepository
+from src.infrastructure.external.llm import ILLMProvider, ProviderFactory
 from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.security import verify_token
 
@@ -129,3 +130,37 @@ def require_role(required_roles: List[str]) -> Callable:
         return current_user
     
     return role_checker
+
+
+async def get_llm_provider() -> ILLMProvider:
+    """
+    Dependency to get the configured LLM provider instance.
+    
+    The provider is determined by the LLM_PROVIDER environment variable
+    (from settings). Supported providers: openai, anthropic, ollama, openrouter.
+    
+    Returns:
+        An ILLMProvider instance for generating completions.
+        
+    Raises:
+        UnsupportedProviderError: If the configured provider is not supported.
+        ValueError: If provider initialization fails (e.g., missing API key).
+    """
+    return ProviderFactory.get_llm_provider()
+
+
+async def get_embedding_provider() -> ILLMProvider:
+    """
+    Dependency to get the configured embedding provider instance.
+    
+    The provider is determined by the LLM_EMBEDDING_PROVIDER environment variable
+    (from settings). Supported providers: openai, ollama.
+    
+    Returns:
+        An ILLMProvider instance for generating embeddings.
+        
+    Raises:
+        UnsupportedProviderError: If the configured provider doesn't support embeddings.
+        ValueError: If provider initialization fails (e.g., missing API key).
+    """
+    return ProviderFactory.get_embedding_provider()

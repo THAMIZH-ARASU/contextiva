@@ -10,18 +10,44 @@ POSTGRES_DB=contextiva
 POSTGRES_USER=your-user
 POSTGRES_PASSWORD=your-password
 
-# LLM Provider
-LLM_PROVIDER=openai  # openai, anthropic, ollama, openrouter
-LLM_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
-LLM_TEMPERATURE=0.3
-LLM_MAX_TOKENS=2000
+# Redis Cache
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
 
-# Embeddings
-EMBEDDING_PROVIDER=openai
-EMBEDDING_MODEL=text-embedding-3-small
-EMBEDDING_DIMENSIONS=1536
-EMBEDDING_USE_CONTEXTUAL=false
+# LLM Provider Configuration
+# Options: openai, anthropic, ollama, openrouter
+LLM_PROVIDER=openai
+LLM_EMBEDDING_PROVIDER=openai
+
+# OpenAI Configuration (required if using openai provider)
+LLM_OPENAI_API_KEY=sk-...
+LLM_DEFAULT_LLM_MODEL=gpt-4o-mini
+LLM_DEFAULT_EMBEDDING_MODEL=text-embedding-3-small
+
+# Anthropic Configuration (optional, only if using anthropic provider)
+# Note: Anthropic does not provide embeddings, use openai for embeddings
+LLM_ANTHROPIC_API_KEY=sk-ant-...
+
+# Ollama Configuration (optional, only if using ollama for local models)
+# Ollama runs locally and does not require authentication
+LLM_OLLAMA_BASE_URL=http://localhost:11434
+
+# OpenRouter Configuration (optional, only if using openrouter for 100+ models)
+# Note: OpenRouter does not provide embeddings directly
+LLM_OPENROUTER_API_KEY=sk-or-...
+
+# Legacy LLM Configuration (deprecated, use LLM_* variables above)
+# LLM_API_KEY=sk-...
+# LLM_MODEL=gpt-4o-mini
+# LLM_TEMPERATURE=0.3
+# LLM_MAX_TOKENS=2000
+
+# Embeddings (deprecated, use LLM_EMBEDDING_PROVIDER and LLM_DEFAULT_EMBEDDING_MODEL above)
+# EMBEDDING_PROVIDER=openai
+# EMBEDDING_MODEL=text-embedding-3-small
+# EMBEDDING_DIMENSIONS=1536
+# EMBEDDING_USE_CONTEXTUAL=false
 
 # RAG Configuration
 RAG_CHUNK_SIZE=5000

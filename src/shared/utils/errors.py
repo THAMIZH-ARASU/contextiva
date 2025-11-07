@@ -26,3 +26,26 @@ class KnowledgeItemNotFoundError(Exception):
     """Raised when a KnowledgeItem cannot be found by the provided identifier."""
 
 
+# LLM Provider Exceptions
+
+
+class LLMProviderError(Exception):
+    """Base exception for all LLM provider errors."""
+
+
+class LLMAuthenticationError(LLMProviderError):
+    """Raised when LLM provider authentication fails (401, 403 errors)."""
+
+
+class LLMRateLimitError(LLMProviderError):
+    """Raised when LLM provider rate limit is exceeded (429 errors)."""
+
+
+class LLMConnectionError(LLMProviderError):
+    """Raised when network connection to LLM provider fails."""
+
+
+class UnsupportedProviderError(LLMProviderError):
+    """Raised when an unsupported or unknown provider name is requested."""
+
+
