@@ -160,4 +160,3 @@ code_quality_metrics:
   security_vulnerabilities: 0
   code_duplication: 'None detected'
   complexity: 'Low - well-factored functions with single responsibilities'
-

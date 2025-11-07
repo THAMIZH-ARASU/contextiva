@@ -7,22 +7,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_user, get_project_repository
 from src.api.v1.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from src.domain.models.project import IProjectRepository, Project
 from src.domain.models.user import User
-from src.infrastructure.database.repositories.project_repository import ProjectRepository
-from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.errors import ProjectNotFoundError
 
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
-
-
-async def get_project_repository() -> IProjectRepository:
-    """Dependency to get the project repository instance."""
-    pool = await init_pool()
-    return ProjectRepository()
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)

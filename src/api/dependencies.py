@@ -8,7 +8,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
+from src.domain.models.project import IProjectRepository
 from src.domain.models.user import IUserRepository, User
+from src.infrastructure.database.repositories.project_repository import ProjectRepository
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.security import verify_token
@@ -24,6 +26,14 @@ async def get_user_repository() -> IUserRepository:
     """
     pool = await init_pool()
     return UserRepository(pool)
+
+
+async def get_project_repository() -> IProjectRepository:
+    """
+    Dependency to get the project repository instance.
+    """
+    pool = await init_pool()
+    return ProjectRepository()
 
 
 async def get_current_user(
