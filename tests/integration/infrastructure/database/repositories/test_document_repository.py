@@ -1,281 +1,381 @@
 """Integration tests for DocumentRepository."""
 
 import pytest
+import asyncpg
 from datetime import datetime
 from uuid import uuid4
 
 from src.domain.models.document import Document, DocumentType
-from src.infrastructure.database.repositories.document_repository import (
-    DocumentRepository,
-)
+from src.infrastructure.database.repositories.document_repository import DocumentRepository
+from src.shared.config.settings import load_settings
 from src.shared.utils.errors import DocumentNotFoundError
 
 
-@pytest.fixture
-async def cleanup_documents(db_pool):
-    """Clean up documents table after each test."""
-    yield
-    async with db_pool.acquire() as conn:
-        await conn.execute("DELETE FROM knowledge_items")
-        await conn.execute("DELETE FROM documents")
+async def get_fresh_pool():
+    """Create a fresh connection pool for each test (bypass singleton)."""
+    settings = load_settings()
+    return await asyncpg.create_pool(dsn=settings.db.dsn, min_size=1, max_size=5)
+
+
+async def create_test_project():
+    """Helper to create a test project and return pool + project_id."""
+    pool = await get_fresh_pool()
+    project_id = uuid4()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """
+            INSERT INTO projects (id, name, description, status, tags, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+            """,
+            project_id,
+            "Test Project",
+            "Integration test project",
+            "Active",
+            [],
+        )
+    return pool, project_id
+
+
+async def cleanup_test_project(pool, project_id):
+    """Cleanup test project (CASCADE delete) and close pool."""
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM projects WHERE id = $1", project_id)
+    await pool.close()
 
 
 @pytest.mark.asyncio
 class TestDocumentRepository:
-    """Integration tests for DocumentRepository."""
+    """Integration tests for DocumentRepository using real PostgreSQL database."""
 
-    async def test_create_document(self, db_pool, cleanup_documents, test_project_id):
-        """Test creating a document in the database."""
+    async def test_create_document(self):
+        """Test creating a new document."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        doc_id = uuid4()
+        now = datetime.utcnow()
         doc = Document(
-            id=uuid4(),
-            project_id=test_project_id,
-            name="README.md",
+            id=doc_id,
+            project_id=project_id,
+            name="test.md",
             type=DocumentType.MARKDOWN,
-            version="v1.0.0",
-            content_hash="a" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            version="1.0.0",
+            content_hash="a" * 64,  # Valid SHA-256
+            created_at=now,
+            updated_at=now,
         )
 
-        # Act
-        created = await repo.create(doc)
+        try:
+            # Act
+            created = await repo.create(doc)
 
-        # Assert
-        assert created.id == doc.id
-        assert created.project_id == test_project_id
-        assert created.name == "README.md"
-        assert created.type == DocumentType.MARKDOWN
-        assert created.version == "v1.0.0"
+            # Assert
+            assert created.id == doc_id
+            assert created.project_id == project_id
+            assert created.name == "test.md"
+            assert created.type == DocumentType.MARKDOWN
+            assert created.version == "1.0.0"
+            assert created.content_hash == "a" * 64
+            assert isinstance(created.created_at, datetime)
+            assert isinstance(created.updated_at, datetime)
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_get_by_id_existing(self, db_pool, cleanup_documents, test_project_id):
+    async def test_get_by_id_existing(self):
         """Test retrieving an existing document by ID."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        doc_id = uuid4()
+        now = datetime.utcnow()
         doc = Document(
-            id=uuid4(),
-            project_id=test_project_id,
-            name="test.pdf",
-            type=DocumentType.PDF,
+            id=doc_id,
+            project_id=project_id,
+            name="test.md",
+            type=DocumentType.MARKDOWN,
             version="1.0.0",
             content_hash="b" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
         )
         await repo.create(doc)
 
-        # Act
-        found = await repo.get_by_id(doc.id)
+        try:
+            # Act
+            retrieved = await repo.get_by_id(doc_id)
 
-        # Assert
-        assert found is not None
-        assert found.id == doc.id
-        assert found.name == "test.pdf"
+            # Assert
+            assert retrieved is not None
+            assert retrieved.id == doc_id
+            assert retrieved.name == "test.md"
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_get_by_id_nonexistent(self, db_pool, cleanup_documents):
+    async def test_get_by_id_nonexistent(self):
         """Test retrieving a non-existent document returns None."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        nonexistent_id = uuid4()
 
-        # Act
-        found = await repo.get_by_id(uuid4())
+        try:
+            # Act
+            result = await repo.get_by_id(nonexistent_id)
 
-        # Assert
-        assert found is None
+            # Assert
+            assert result is None
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_get_by_project(self, db_pool, cleanup_documents, test_project_id):
+    async def test_get_by_project(self):
         """Test retrieving all documents for a project."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        now = datetime.utcnow()
         doc1 = Document(
             id=uuid4(),
-            project_id=test_project_id,
+            project_id=project_id,
             name="doc1.md",
             type=DocumentType.MARKDOWN,
             version="1.0.0",
             content_hash="c" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
         )
         doc2 = Document(
             id=uuid4(),
-            project_id=test_project_id,
-            name="doc2.md",
-            type=DocumentType.MARKDOWN,
+            project_id=project_id,
+            name="doc2.pdf",
+            type=DocumentType.PDF,
             version="1.0.0",
             content_hash="d" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
         )
         await repo.create(doc1)
         await repo.create(doc2)
 
-        # Act
-        docs = await repo.get_by_project(test_project_id)
+        try:
+            # Act
+            documents = await repo.get_by_project(project_id)
 
-        # Assert
-        assert len(docs) == 2
-        doc_ids = [d.id for d in docs]
-        assert doc1.id in doc_ids
-        assert doc2.id in doc_ids
+            # Assert
+            assert len(documents) == 2
+            names = {doc.name for doc in documents}
+            assert names == {"doc1.md", "doc2.pdf"}
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_get_all_versions(self, db_pool, cleanup_documents, test_project_id):
+    async def test_get_all_versions(self):
         """Test retrieving all versions of a document."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        doc_name = "versioned.md"
+        now = datetime.utcnow()
+        
+        # Create multiple versions
         doc_v1 = Document(
             id=uuid4(),
-            project_id=test_project_id,
-            name="spec.md",
+            project_id=project_id,
+            name=doc_name,
             type=DocumentType.MARKDOWN,
-            version="v1.0.0",
+            version="1.0.0",
             content_hash="e" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
         )
         doc_v2 = Document(
             id=uuid4(),
-            project_id=test_project_id,
-            name="spec.md",
+            project_id=project_id,
+            name=doc_name,
             type=DocumentType.MARKDOWN,
-            version="v2.0.0",
+            version="2.0.0",
             content_hash="f" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
+        )
+        doc_v3 = Document(
+            id=uuid4(),
+            project_id=project_id,
+            name=doc_name,
+            type=DocumentType.MARKDOWN,
+            version="3.0.0",
+            content_hash="1" * 64,
+            created_at=now,
+            updated_at=now,
         )
         await repo.create(doc_v1)
         await repo.create(doc_v2)
+        await repo.create(doc_v3)
 
-        # Act
-        versions = await repo.get_all_versions(test_project_id, "spec.md")
+        try:
+            # Act
+            versions = await repo.get_all_versions(project_id, doc_name)
 
-        # Assert
-        assert len(versions) == 2
-        # Should be ordered by version DESC
-        assert versions[0].version == "v2.0.0"
-        assert versions[1].version == "v1.0.0"
+            # Assert
+            assert len(versions) == 3
+            # Should be ordered DESC by version
+            assert versions[0].version == "3.0.0"
+            assert versions[1].version == "2.0.0"
+            assert versions[2].version == "1.0.0"
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_update_document(self, db_pool, cleanup_documents, test_project_id):
-        """Test updating an existing document."""
+    async def test_update_document(self):
+        """Test updating a document."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        doc_id = uuid4()
+        now = datetime.utcnow()
         doc = Document(
-            id=uuid4(),
-            project_id=test_project_id,
-            name="old.md",
+            id=doc_id,
+            project_id=project_id,
+            name="original.md",
             type=DocumentType.MARKDOWN,
             version="1.0.0",
-            content_hash="g" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            content_hash="2" * 64,
+            created_at=now,
+            updated_at=now,
         )
-        created = await repo.create(doc)
+        await repo.create(doc)
 
-        # Act
-        created.name = "new.md"
-        created.version = "2.0.0"
-        updated = await repo.update(created)
+        try:
+            # Act - Update version
+            updated_doc = Document(
+                id=doc_id,
+                project_id=project_id,
+                name="original.md",
+                type=DocumentType.MARKDOWN,
+                version="2.0.0",
+                content_hash="3" * 64,
+                created_at=now,
+                updated_at=now,
+            )
+            result = await repo.update(updated_doc)
 
-        # Assert
-        assert updated.name == "new.md"
-        assert updated.version == "2.0.0"
+            # Assert
+            assert result.version == "2.0.0"
+            assert result.content_hash == "3" * 64
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_update_nonexistent_raises_error(self, db_pool, cleanup_documents):
+    async def test_update_nonexistent_raises_error(self):
         """Test updating non-existent document raises error."""
         # Arrange
-        repo = DocumentRepository(db_pool)
-        doc = Document(
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        now = datetime.utcnow()
+        nonexistent_doc = Document(
             id=uuid4(),
-            project_id=uuid4(),
-            name="ghost.md",
+            project_id=project_id,
+            name="nonexistent.md",
             type=DocumentType.MARKDOWN,
             version="1.0.0",
-            content_hash="h" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            content_hash="4" * 64,
+            created_at=now,
+            updated_at=now,
         )
 
-        # Act & Assert
-        with pytest.raises(DocumentNotFoundError):
-            await repo.update(doc)
+        try:
+            # Act & Assert
+            with pytest.raises(DocumentNotFoundError):
+                await repo.update(nonexistent_doc)
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_delete_document(self, db_pool, cleanup_documents, test_project_id):
+    async def test_delete_document(self):
         """Test deleting a document."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        doc_id = uuid4()
+        now = datetime.utcnow()
         doc = Document(
-            id=uuid4(),
-            project_id=test_project_id,
-            name="delete_me.md",
+            id=doc_id,
+            project_id=project_id,
+            name="to_delete.md",
             type=DocumentType.MARKDOWN,
             version="1.0.0",
-            content_hash="i" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            content_hash="5" * 64,
+            created_at=now,
+            updated_at=now,
         )
         await repo.create(doc)
 
-        # Act
-        deleted = await repo.delete(doc.id)
+        try:
+            # Act
+            result = await repo.delete(doc_id)
 
-        # Assert
-        assert deleted is True
-        found = await repo.get_by_id(doc.id)
-        assert found is None
+            # Assert
+            assert result is True
+            deleted = await repo.get_by_id(doc_id)
+            assert deleted is None
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_delete_nonexistent_returns_false(self, db_pool, cleanup_documents):
+    async def test_delete_nonexistent_returns_false(self):
         """Test deleting non-existent document returns False."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        repo = DocumentRepository(pool)
+        nonexistent_id = uuid4()
 
-        # Act
-        deleted = await repo.delete(uuid4())
+        try:
+            # Act
+            result = await repo.delete(nonexistent_id)
 
-        # Assert
-        assert deleted is False
+            # Assert
+            assert result is False
+        finally:
+            await cleanup_test_project(pool, project_id)
 
-    async def test_cascade_delete_with_knowledge_items(
-        self, db_pool, cleanup_documents, test_project_id
-    ):
-        """Test that deleting a document cascades to knowledge items."""
+    async def test_cascade_delete_with_knowledge_items(self):
+        """Test that deleting a document cascades to knowledge_items."""
         # Arrange
-        repo = DocumentRepository(db_pool)
+        pool, project_id = await create_test_project()
+        doc_repo = DocumentRepository(pool)
+        doc_id = uuid4()
+        now = datetime.utcnow()
         doc = Document(
-            id=uuid4(),
-            project_id=test_project_id,
-            name="cascade.md",
+            id=doc_id,
+            project_id=project_id,
+            name="with_knowledge.md",
             type=DocumentType.MARKDOWN,
             version="1.0.0",
-            content_hash="j" * 64,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            content_hash="6" * 64,
+            created_at=now,
+            updated_at=now,
         )
-        await repo.create(doc)
+        await doc_repo.create(doc)
 
-        # Create a knowledge item linked to this document
-        async with db_pool.acquire() as conn:
+        # Create a knowledge item linked to the document
+        async with pool.acquire() as conn:
+            embedding = [0.1] * 1536
+            embedding_str = '[' + ','.join(str(x) for x in embedding) + ']'
             await conn.execute(
                 """
-                INSERT INTO knowledge_items (id, document_id, chunk_text, chunk_index, embedding, metadata, created_at)
-                VALUES ($1, $2, $3, $4, $5::vector, $6::jsonb, $7)
+                INSERT INTO knowledge_items (id, document_id, chunk_text, chunk_index, embedding, created_at)
+                VALUES ($1, $2, $3, $4, $5::vector, NOW())
                 """,
                 uuid4(),
-                doc.id,
+                doc_id,
                 "Test chunk",
                 0,
-                [0.1] * 1536,
-                {},
-                datetime.utcnow(),
+                embedding_str,  # Convert to string for pgvector
             )
 
-        # Act
-        await repo.delete(doc.id)
+        try:
+            # Act - Delete document
+            await doc_repo.delete(doc_id)
 
-        # Assert - knowledge items should be deleted via CASCADE
-        async with db_pool.acquire() as conn:
-            count = await conn.fetchval(
-                "SELECT COUNT(*) FROM knowledge_items WHERE document_id = $1",
-                doc.id,
-            )
+            # Assert - Knowledge item should be CASCADE deleted
+            async with pool.acquire() as conn:
+                count = await conn.fetchval(
+                    "SELECT COUNT(*) FROM knowledge_items WHERE document_id = $1", doc_id
+                )
             assert count == 0
+        finally:
+            await cleanup_test_project(pool, project_id)

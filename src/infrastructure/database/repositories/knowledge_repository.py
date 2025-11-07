@@ -4,6 +4,7 @@ This module provides the concrete repository implementation for KnowledgeItem en
 using asyncpg, PostgreSQL, and pgvector for semantic search.
 """
 
+import json
 from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
@@ -12,6 +13,38 @@ from asyncpg import Pool
 
 from src.domain.models.knowledge import IKnowledgeRepository, KnowledgeItem
 from src.shared.utils.errors import KnowledgeItemNotFoundError
+
+
+def _parse_pgvector(vector_str: str) -> list[float]:
+    """Parse pgvector string representation to list of floats.
+    
+    Args:
+        vector_str: String like "[0.1,0.2,0.3]"
+    
+    Returns:
+        List of floats
+    """
+    # Remove brackets and split by comma
+    cleaned = vector_str.strip('[]')
+    if not cleaned:
+        return []
+    return [float(x.strip()) for x in cleaned.split(',')]
+
+
+def _parse_metadata(metadata: Any) -> dict[str, Any]:
+    """Parse metadata - handle both dict and JSON string.
+    
+    Args:
+        metadata: Either a dict (already parsed) or JSON string
+    
+    Returns:
+        Parsed metadata dictionary
+    """
+    if isinstance(metadata, dict):
+        return metadata
+    if isinstance(metadata, str):
+        return json.loads(metadata)
+    return {}
 
 
 class KnowledgeRepository(IKnowledgeRepository):
@@ -42,6 +75,10 @@ class KnowledgeRepository(IKnowledgeRepository):
             RETURNING id, document_id, chunk_text, chunk_index, embedding, metadata, created_at
         """
         now = datetime.utcnow()
+        # Convert embedding list to pgvector string format
+        embedding_str = '[' + ','.join(str(x) for x in item.embedding) + ']'
+        # Convert metadata dict to JSON string
+        metadata_str = json.dumps(item.metadata)
 
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -50,8 +87,8 @@ class KnowledgeRepository(IKnowledgeRepository):
                 item.document_id,
                 item.chunk_text,
                 item.chunk_index,
-                item.embedding,
-                item.metadata,
+                embedding_str,
+                metadata_str,
                 now,
             )
 
@@ -63,8 +100,8 @@ class KnowledgeRepository(IKnowledgeRepository):
             document_id=row["document_id"],
             chunk_text=row["chunk_text"],
             chunk_index=row["chunk_index"],
-            embedding=list(row["embedding"]),
-            metadata=dict(row["metadata"]),
+            embedding=_parse_pgvector(row["embedding"]),
+            metadata=_parse_metadata(row["metadata"]),
             created_at=row["created_at"],
         )
 
@@ -94,14 +131,18 @@ class KnowledgeRepository(IKnowledgeRepository):
             results = []
             async with conn.transaction():
                 for item in items:
+                    # Convert embedding list to pgvector string format
+                    embedding_str = '[' + ','.join(str(x) for x in item.embedding) + ']'
+                    # Convert metadata dict to JSON string
+                    metadata_str = json.dumps(item.metadata)
                     row = await conn.fetchrow(
                         query,
                         item.id,
                         item.document_id,
                         item.chunk_text,
                         item.chunk_index,
-                        item.embedding,
-                        item.metadata,
+                        embedding_str,
+                        metadata_str,
                         now,
                     )
                     if row:
@@ -111,8 +152,8 @@ class KnowledgeRepository(IKnowledgeRepository):
                                 document_id=row["document_id"],
                                 chunk_text=row["chunk_text"],
                                 chunk_index=row["chunk_index"],
-                                embedding=list(row["embedding"]),
-                                metadata=dict(row["metadata"]),
+                                embedding=_parse_pgvector(row["embedding"]),
+                                metadata=_parse_metadata(row["metadata"]),
                                 created_at=row["created_at"],
                             )
                         )
@@ -145,8 +186,8 @@ class KnowledgeRepository(IKnowledgeRepository):
             document_id=row["document_id"],
             chunk_text=row["chunk_text"],
             chunk_index=row["chunk_index"],
-            embedding=list(row["embedding"]),
-            metadata=dict(row["metadata"]),
+            embedding=_parse_pgvector(row["embedding"]),
+            metadata=_parse_metadata(row["metadata"]),
             created_at=row["created_at"],
         )
 
@@ -180,8 +221,8 @@ class KnowledgeRepository(IKnowledgeRepository):
                 document_id=row["document_id"],
                 chunk_text=row["chunk_text"],
                 chunk_index=row["chunk_index"],
-                embedding=list(row["embedding"]),
-                metadata=dict(row["metadata"]),
+                embedding=_parse_pgvector(row["embedding"]),
+                metadata=_parse_metadata(row["metadata"]),
                 created_at=row["created_at"],
             )
             for row in rows
@@ -205,6 +246,9 @@ class KnowledgeRepository(IKnowledgeRepository):
         Returns:
             List of tuples (KnowledgeItem, similarity_score) ordered by similarity
         """
+        # Convert embedding list to pgvector string format
+        embedding_str = '[' + ','.join(str(x) for x in embedding) + ']'
+        
         # Use cosine similarity (1 - cosine_distance)
         if project_id:
             query = """
@@ -218,7 +262,7 @@ class KnowledgeRepository(IKnowledgeRepository):
                 ORDER BY k.embedding <=> $1::vector
                 LIMIT $4
             """
-            params = [embedding, project_id, similarity_threshold, limit]
+            params = [embedding_str, project_id, similarity_threshold, limit]
         else:
             query = """
                 SELECT id, document_id, chunk_text, chunk_index, 
@@ -229,7 +273,7 @@ class KnowledgeRepository(IKnowledgeRepository):
                 ORDER BY embedding <=> $1::vector
                 LIMIT $3
             """
-            params = [embedding, similarity_threshold, limit]
+            params = [embedding_str, similarity_threshold, limit]
 
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(query, *params)
@@ -241,8 +285,8 @@ class KnowledgeRepository(IKnowledgeRepository):
                     document_id=row["document_id"],
                     chunk_text=row["chunk_text"],
                     chunk_index=row["chunk_index"],
-                    embedding=list(row["embedding"]),
-                    metadata=dict(row["metadata"]),
+                    embedding=_parse_pgvector(row["embedding"]),
+                    metadata=_parse_metadata(row["metadata"]),
                     created_at=row["created_at"],
                 ),
                 float(row["similarity"]),
