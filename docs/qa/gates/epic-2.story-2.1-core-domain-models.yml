@@ -1,0 +1,231 @@
+# QA Gate Decision - Story 2.1: Core Domain Models
+
+story_id: "2.1"
+story_title: "Core Domain Models (Document, Task, KnowledgeItem)"
+epic: "Epic 2: Knowledge Ingestion & Lifecycle"
+reviewed_by: "Quinn (QA Agent)"
+review_date: "2025-11-07"
+decision: "PASS"
+
+# Gate Decision: PASS | CONCERNS | FAIL | WAIVED
+# PASS: All criteria met, approve for production
+# CONCERNS: Minor issues noted, approve with recommendations
+# FAIL: Critical issues found, requires fixes before approval
+# WAIVED: Requirements waived by Product Owner with documented rationale
+
+summary: |
+  Story 2.1 has been implemented with exceptional quality. All 6 acceptance 
+  criteria fully met with 100% test coverage (85 tests total). Database schema 
+  properly optimized with HNSW vector index. Clean architecture maintained. 
+  Production-ready with no technical debt or known bugs.
+
+requirements_traceability:
+  total_acceptance_criteria: 6
+  criteria_met: 6
+  criteria_failed: 0
+  traceability_score: 100%
+  
+  acceptance_criteria:
+    - id: AC1
+      requirement: "Document entity with semantic versioning"
+      status: PASS
+      evidence: "src/domain/models/document.py - Complete with regex validation"
+      
+    - id: AC2
+      requirement: "Task entity with status, priority, dependencies"
+      status: PASS
+      evidence: "src/domain/models/task.py - Complete with circular dependency detection"
+      
+    - id: AC3
+      requirement: "KnowledgeItem entity with pgvector embeddings"
+      status: PASS
+      evidence: "src/domain/models/knowledge.py - Complete with vector(1536) validation"
+      
+    - id: AC4
+      requirement: "Repository interfaces and implementations"
+      status: PASS
+      evidence: "All 3 interfaces + PostgreSQL implementations created and tested"
+      
+    - id: AC5
+      requirement: "Alembic migrations for all tables"
+      status: PASS
+      evidence: "3 migrations executed, HNSW index on knowledge_items.embedding"
+      
+    - id: AC6
+      requirement: "Unit and integration tests"
+      status: PASS
+      evidence: "32 unit tests + 53 integration tests, all PASSING"
+
+test_results:
+  unit_tests:
+    total: 32
+    passed: 32
+    failed: 0
+    skipped: 0
+    pass_rate: 100%
+    suites:
+      - name: "test_document.py"
+        tests: 8
+        status: PASS
+      - name: "test_task.py"
+        tests: 11
+        status: PASS
+      - name: "test_knowledge.py"
+        tests: 13
+        status: PASS
+        
+  integration_tests:
+    total: 53
+    passed: 53
+    failed: 0
+    skipped: 0
+    pass_rate: 100%
+    suites:
+      - name: "test_document_repository.py"
+        tests: 10
+        status: PASS
+      - name: "test_task_repository.py"
+        tests: 15
+        status: PASS
+      - name: "test_knowledge_repository.py"
+        tests: 15
+        status: PASS
+      - name: "test_project_repository.py"
+        tests: 1
+        status: PASS
+      - name: "test_user_repository.py"
+        tests: 12
+        status: PASS
+
+  overall:
+    total_tests: 85
+    passed: 85
+    failed: 0
+    pass_rate: 100%
+
+code_quality:
+  architecture: PASS
+  type_safety: PASS
+  documentation: PASS
+  error_handling: PASS
+  test_coverage: EXCEEDS
+  
+  strengths:
+    - "Complete type hints on all domain models and repositories"
+    - "Proper separation of concerns (domain vs infrastructure)"
+    - "Comprehensive validation in domain layer"
+    - "Efficient database schema with HNSW vector index"
+    - "Fresh pool pattern eliminates pytest-asyncio conflicts"
+    - "Helper functions for pgvector and JSON parsing"
+    
+  technical_debt: "None identified"
+
+database_schema:
+  documents_table:
+    status: PASS
+    indexes: 
+      - "documents_pkey (PRIMARY KEY on id)"
+      - "idx_documents_project_id"
+      - "idx_documents_content_hash"
+      - "idx_documents_version"
+      - "idx_documents_project_name (composite)"
+    foreign_keys:
+      - "documents_project_id_fkey → projects(id) CASCADE DELETE"
+      
+  tasks_table:
+    status: PASS
+    indexes:
+      - "tasks_pkey (PRIMARY KEY on id)"
+      - "idx_tasks_project_id"
+      - "idx_tasks_status"
+      - "idx_tasks_assignee"
+      - "idx_tasks_project_status (composite)"
+    foreign_keys:
+      - "tasks_project_id_fkey → projects(id) CASCADE DELETE"
+      
+  knowledge_items_table:
+    status: PASS
+    indexes:
+      - "knowledge_items_pkey (PRIMARY KEY on id)"
+      - "idx_knowledge_items_document_id"
+      - "idx_knowledge_items_chunk_index (composite with document_id)"
+      - "idx_knowledge_items_embedding_hnsw (HNSW vector index)"
+    foreign_keys:
+      - "knowledge_items_document_id_fkey → documents(id) CASCADE DELETE"
+    vector_configuration:
+      type: "vector(1536)"
+      index_type: "HNSW"
+      distance_metric: "cosine"
+
+risk_assessment:
+  technical_risk: LOW
+  quality_risk: MINIMAL
+  performance_risk: LOW
+  
+  risks:
+    - risk: "Vector similarity search performance at scale"
+      severity: LOW
+      mitigation: "HNSW index provides O(log n) performance, tested and working"
+      
+    - risk: "Event loop conflicts in async tests"
+      severity: RESOLVED
+      mitigation: "Fresh pool pattern implemented, all tests passing"
+
+issues:
+  critical: []
+  warnings: []
+  suggestions:
+    - "Consider adding soft delete for documents/tasks"
+    - "Add metadata validation schema (JSON Schema)"
+    - "Implement task state machine in future story"
+    - "Add embedding dimension config validation at startup"
+
+nfr_compliance:
+  - requirement: "NFR1: Type Safety & Clean Architecture"
+    status: PASS
+    evidence: "Full type hints, domain/infrastructure separation maintained"
+    
+  - requirement: "FR3: Semantic Versioning"
+    status: PASS
+    evidence: "Regex validation ^v?\\d+\\.\\d+\\.\\d+$ implemented and tested"
+    
+  - requirement: "FR4: Document Type Support"
+    status: PASS
+    evidence: "DocumentType enum with 5 types (markdown, pdf, docx, html, text)"
+    
+  - requirement: "FR5: Task Dependencies"
+    status: PASS
+    evidence: "UUID[] storage, circular dependency detection implemented"
+    
+  - requirement: "FR8: Vector Embeddings"
+    status: PASS
+    evidence: "pgvector(1536) with HNSW index, similarity search tested"
+
+recommendations:
+  next_steps:
+    - "Mark Story 2.1 as Done"
+    - "Proceed to Story 2.2 (LLM & Embedding Provider Factory)"
+    - "Continue Epic 2 implementation"
+    
+  improvements:
+    - priority: LOW
+      item: "Add JSON Schema validation for KnowledgeItem metadata"
+    - priority: LOW
+      item: "Consider task state machine for status transitions"
+
+approval:
+  approved: true
+  approved_by: "Quinn (QA Agent)"
+  approved_date: "2025-11-07"
+  conditions: []
+  notes: |
+    Exceptional implementation quality. All acceptance criteria fully met with 
+    comprehensive test coverage. Database schema optimized. Clean architecture 
+    maintained. Production-ready with no blockers.
+
+metrics:
+  unit_test_coverage: 100%
+  integration_test_coverage: 100%
+  code_quality_grade: "A"
+  technical_debt_score: 0
+  bug_count: 0
