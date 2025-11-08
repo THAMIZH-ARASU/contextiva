@@ -2,7 +2,7 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class KnowledgeUploadResponse(BaseModel):
@@ -16,12 +16,9 @@ class KnowledgeUploadResponse(BaseModel):
 class KnowledgeItemResponse(BaseModel):
     """Response schema for knowledge item."""
 
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     document_id: UUID
     chunk_text: str
     metadata: dict[str, Any]
-
-    class Config:
-        """Pydantic configuration."""
-
-        from_attributes = True

@@ -5,7 +5,7 @@ from typing import BinaryIO
 
 from bs4 import BeautifulSoup
 from docx import Document
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 from src.shared.utils.errors import TextExtractionError
 

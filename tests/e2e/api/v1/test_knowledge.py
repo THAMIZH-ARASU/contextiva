@@ -12,6 +12,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from src.api.main import app
+from src.infrastructure.external.llm.provider_factory import ProviderFactory
 from src.shared.infrastructure.database.connection import init_pool
 
 pytestmark = pytest.mark.asyncio
@@ -20,11 +21,17 @@ pytestmark = pytest.mark.asyncio
 @pytest_asyncio.fixture
 async def cleanup_knowledge():
     """Clean up knowledge_items and documents tables before and after each test."""
+    # Setup - clean before test
     pool = await init_pool()
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM knowledge_items")
         await conn.execute("DELETE FROM documents")
+    
     yield
+    
+    # Teardown - clean after test
+    # Pool is re-initialized by cleanup_pool fixture, so init_pool() returns fresh pool
+    pool = await init_pool()
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM knowledge_items")
         await conn.execute("DELETE FROM documents")
