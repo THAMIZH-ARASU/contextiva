@@ -10,9 +10,11 @@ from jose import JWTError
 
 from src.domain.models.document import IDocumentRepository
 from src.domain.models.project import IProjectRepository
+from src.domain.models.task import ITaskRepository
 from src.domain.models.user import IUserRepository, User
 from src.infrastructure.database.repositories.document_repository import DocumentRepository
 from src.infrastructure.database.repositories.project_repository import ProjectRepository
+from src.infrastructure.database.repositories.task_repository import TaskRepository
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.external.llm import ILLMProvider, ProviderFactory
 from src.shared.infrastructure.database.connection import init_pool
@@ -44,6 +46,14 @@ async def get_document_repository() -> IDocumentRepository:
     """
     pool = await init_pool()
     return DocumentRepository(pool)
+
+
+async def get_task_repository() -> ITaskRepository:
+    """
+    Dependency to get the task repository instance.
+    """
+    pool = await init_pool()
+    return TaskRepository(pool)
 
 
 async def get_current_user(

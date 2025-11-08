@@ -30,6 +30,10 @@ class TaskNotFoundError(Exception):
     """Raised when a Task cannot be found by the provided identifier."""
 
 
+class CircularDependencyError(Exception):
+    """Raised when a task has a circular dependency (depends on itself)."""
+
+
 class KnowledgeItemNotFoundError(Exception):
     """Raised when a KnowledgeItem cannot be found by the provided identifier."""
 
