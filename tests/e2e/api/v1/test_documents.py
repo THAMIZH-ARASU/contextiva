@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from src.api.main import app
 from src.shared.infrastructure.database.connection import init_pool
@@ -50,7 +50,9 @@ async def test_project_id() -> UUID:
 @pytest_asyncio.fixture
 async def auth_token() -> str:
     """Get authentication token for test user."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
         response = await ac.post(
             "/api/v1/auth/token",
             data={"username": "testuser", "password": "testpass"},
@@ -74,7 +76,7 @@ async def test_create_document_success(
     cleanup_documents, test_project_id, auth_headers
 ):
     """Test creating a document returns 201 with v1.0.0 version."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/documents",
             json={
@@ -98,7 +100,7 @@ async def test_create_document_success(
 
 async def test_create_document_unauthorized(cleanup_documents, test_project_id):
     """Test creating a document without auth returns 401."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/documents",
             json={
@@ -116,7 +118,7 @@ async def test_create_document_invalid_content_hash(
     cleanup_documents, test_project_id, auth_headers
 ):
     """Test creating a document with invalid content_hash returns 422."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/documents",
             json={
@@ -133,7 +135,7 @@ async def test_create_document_invalid_content_hash(
 
 async def test_create_document_missing_fields(cleanup_documents, auth_headers):
     """Test creating a document with missing required fields returns 422."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             "/api/v1/documents",
             json={"name": "Test Doc"},  # Missing project_id, type, content_hash
@@ -169,7 +171,7 @@ async def test_list_documents_success(
                 ("a" + str(i)) * 32,
             )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents?project_id={test_project_id}",
             headers=auth_headers,
@@ -185,7 +187,7 @@ async def test_list_documents_success(
 
 async def test_list_documents_unauthorized(test_project_id):
     """Test listing documents without auth returns 401."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents?project_id={test_project_id}",
         )
@@ -197,7 +199,7 @@ async def test_list_documents_empty(
     cleanup_documents, test_project_id, auth_headers
 ):
     """Test listing documents for project with no documents returns empty list."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents?project_id={test_project_id}",
             headers=auth_headers,
@@ -230,7 +232,7 @@ async def test_list_documents_pagination(
                 ("a" + str(i)) * 32,
             )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents?project_id={test_project_id}&skip=1&limit=1",
             headers=auth_headers,
@@ -247,7 +249,7 @@ async def test_list_documents_max_limit(
     cleanup_documents, test_project_id, auth_headers
 ):
     """Test max limit enforcement (1000)."""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents?project_id={test_project_id}&limit=5000",
             headers=auth_headers,
@@ -284,7 +286,7 @@ async def test_get_document_success(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents/{doc_id}",
             headers=auth_headers,
@@ -300,7 +302,7 @@ async def test_get_document_success(
 async def test_get_document_unauthorized():
     """Test retrieving a document without auth returns 401."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(f"/api/v1/documents/{doc_id}")
 
     assert response.status_code == 401
@@ -309,7 +311,7 @@ async def test_get_document_unauthorized():
 async def test_get_document_not_found(cleanup_documents, auth_headers):
     """Test retrieving non-existent document returns 404."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.get(
             f"/api/v1/documents/{doc_id}",
             headers=auth_headers,
@@ -344,7 +346,7 @@ async def test_update_document_success(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.put(
             f"/api/v1/documents/{doc_id}",
             json={"name": "New Name"},
@@ -360,7 +362,7 @@ async def test_update_document_success(
 async def test_update_document_unauthorized(test_project_id):
     """Test updating document without auth returns 401."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.put(
             f"/api/v1/documents/{doc_id}",
             json={"name": "New Name"},
@@ -372,7 +374,7 @@ async def test_update_document_unauthorized(test_project_id):
 async def test_update_document_not_found(cleanup_documents, auth_headers):
     """Test updating non-existent document returns 404."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.put(
             f"/api/v1/documents/{doc_id}",
             json={"name": "New Name"},
@@ -403,7 +405,7 @@ async def test_update_document_partial(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.put(
             f"/api/v1/documents/{doc_id}",
             json={"name": "Updated Name"},  # Only updating name
@@ -437,7 +439,7 @@ async def test_update_document_invalid_name(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.put(
             f"/api/v1/documents/{doc_id}",
             json={"name": ""},  # Empty name
@@ -473,7 +475,7 @@ async def test_delete_document_success(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.delete(
             f"/api/v1/documents/{doc_id}",
             headers=auth_headers,
@@ -485,7 +487,7 @@ async def test_delete_document_success(
 async def test_delete_document_unauthorized():
     """Test deleting document without auth returns 401."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.delete(f"/api/v1/documents/{doc_id}")
 
     assert response.status_code == 401
@@ -494,7 +496,7 @@ async def test_delete_document_unauthorized():
 async def test_delete_document_not_found(cleanup_documents, auth_headers):
     """Test deleting non-existent document returns 404."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.delete(
             f"/api/v1/documents/{doc_id}",
             headers=auth_headers,
@@ -529,7 +531,7 @@ async def test_create_version_major(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             f"/api/v1/documents/{doc_id}/version",
             json={"content_hash": "b" * 64, "bump_type": "major"},
@@ -565,7 +567,7 @@ async def test_create_version_minor(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             f"/api/v1/documents/{doc_id}/version",
             json={"content_hash": "c" * 64, "bump_type": "minor"},
@@ -598,7 +600,7 @@ async def test_create_version_patch(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             f"/api/v1/documents/{doc_id}/version",
             json={"content_hash": "d" * 64, "bump_type": "patch"},
@@ -613,7 +615,7 @@ async def test_create_version_patch(
 async def test_create_version_unauthorized():
     """Test creating version without auth returns 401."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             f"/api/v1/documents/{doc_id}/version",
             json={"content_hash": "e" * 64, "bump_type": "minor"},
@@ -625,7 +627,7 @@ async def test_create_version_unauthorized():
 async def test_create_version_not_found(cleanup_documents, auth_headers):
     """Test creating version for non-existent document returns 404."""
     doc_id = uuid4()
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             f"/api/v1/documents/{doc_id}/version",
             json={"content_hash": "f" * 64, "bump_type": "minor"},
@@ -656,7 +658,7 @@ async def test_create_version_invalid_content_hash(
             "a" * 64,
         )
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             f"/api/v1/documents/{doc_id}/version",
             json={"content_hash": "invalid", "bump_type": "minor"},
