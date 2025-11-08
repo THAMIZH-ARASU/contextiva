@@ -72,12 +72,24 @@ class LLMSettings:
 
 
 @dataclass(frozen=True)
+class FileUploadSettings:
+    """Configuration for file upload and processing."""
+
+    max_file_size_mb: int
+    allowed_extensions: list[str]
+    chunk_size_chars: int
+    chunk_overlap_chars: int
+    preserve_sentence_boundaries: bool
+
+
+@dataclass(frozen=True)
 class Settings:
     app: AppSettings
     db: DatabaseSettings
     redis: RedisSettings
     security: SecuritySettings
     llm: LLMSettings
+    file_upload: FileUploadSettings
 
 
 def load_settings() -> Settings:
@@ -113,6 +125,13 @@ def load_settings() -> Settings:
             openrouter_api_key=os.getenv("LLM_OPENROUTER_API_KEY"),
             default_llm_model=os.getenv("LLM_DEFAULT_LLM_MODEL", "gpt-4o-mini"),
             default_embedding_model=os.getenv("LLM_DEFAULT_EMBEDDING_MODEL", "text-embedding-3-small"),
+        ),
+        file_upload=FileUploadSettings(
+            max_file_size_mb=_get_int("MAX_FILE_SIZE_MB", 10),
+            allowed_extensions=[".md", ".pdf", ".docx", ".html"],
+            chunk_size_chars=_get_int("CHUNK_SIZE_CHARS", 2048),
+            chunk_overlap_chars=_get_int("CHUNK_OVERLAP_CHARS", 200),
+            preserve_sentence_boundaries=os.getenv("PRESERVE_SENTENCE_BOUNDARIES", "true").lower() == "true",
         ),
     )
 

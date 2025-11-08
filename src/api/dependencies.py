@@ -9,16 +9,21 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 
 from src.domain.models.document import IDocumentRepository
+from src.domain.models.knowledge import IKnowledgeRepository
 from src.domain.models.project import IProjectRepository
 from src.domain.models.task import ITaskRepository
 from src.domain.models.user import IUserRepository, User
 from src.infrastructure.database.repositories.document_repository import DocumentRepository
+from src.infrastructure.database.repositories.knowledge_repository import KnowledgeRepository
 from src.infrastructure.database.repositories.project_repository import ProjectRepository
 from src.infrastructure.database.repositories.task_repository import TaskRepository
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.external.llm import ILLMProvider, ProviderFactory
+from src.application.services.text_chunker import TextChunker
+from src.application.services.text_extractor import TextExtractor
 from src.shared.infrastructure.database.connection import init_pool
 from src.shared.utils.security import verify_token
+from src.shared.config.settings import load_settings
 
 # OAuth2 scheme for token extraction
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
@@ -54,6 +59,33 @@ async def get_task_repository() -> ITaskRepository:
     """
     pool = await init_pool()
     return TaskRepository(pool)
+
+
+async def get_knowledge_repository() -> IKnowledgeRepository:
+    """
+    Dependency to get the knowledge repository instance.
+    """
+    pool = await init_pool()
+    return KnowledgeRepository(pool)
+
+
+async def get_text_extractor() -> TextExtractor:
+    """
+    Dependency to get the text extractor service.
+    """
+    return TextExtractor()
+
+
+async def get_text_chunker() -> TextChunker:
+    """
+    Dependency to get the text chunker service with configured settings.
+    """
+    settings = load_settings()
+    return TextChunker(
+        chunk_size_chars=settings.file_upload.chunk_size_chars,
+        overlap_chars=settings.file_upload.chunk_overlap_chars,
+        preserve_sentences=settings.file_upload.preserve_sentence_boundaries,
+    )
 
 
 async def get_current_user(

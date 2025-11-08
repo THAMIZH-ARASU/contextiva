@@ -61,3 +61,15 @@ class UnsupportedProviderError(LLMProviderError):
     """Raised when an unsupported or unknown provider name is requested."""
 
 
+class TextExtractionError(Exception):
+    """Raised when text extraction from a file fails."""
+
+
+class EmbeddingError(Exception):
+    """Raised when embedding generation fails."""
+
+
+class DatabaseError(Exception):
+    """Raised when database operations fail."""
+
+

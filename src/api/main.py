@@ -6,7 +6,7 @@ from src.infrastructure.external.llm import ProviderFactory
 from src.shared.config.logging import configure_logging
 from src.shared.infrastructure.database.connection import init_pool, close_pool, ping
 from src.api.middleware.logging_middleware import logging_middleware
-from src.api.v1.routes import auth, documents, projects, tasks
+from src.api.v1.routes import auth, documents, knowledge, projects, tasks
 
 
 @asynccontextmanager
@@ -42,6 +42,7 @@ app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
 app.include_router(projects.router, prefix="/api/v1", tags=["projects"])
 app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
 app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
+app.include_router(knowledge.router, prefix="/api/v1", tags=["knowledge"])
 
 
 @app.get("/api/v1/health")

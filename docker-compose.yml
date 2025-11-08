@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-tumblrs}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Saran@2004}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
