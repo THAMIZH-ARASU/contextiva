@@ -662,7 +662,7 @@ async def test_crawl_knowledge_timeout(test_project_id, auth_headers):
             )
 
     assert response.status_code == 504
-    assert "timeout" in response.json()["detail"].lower()
+    assert "timed out" in response.json()["detail"].lower()
 
 
 async def test_crawl_knowledge_creates_knowledge_items(

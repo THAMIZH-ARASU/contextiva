@@ -209,12 +209,13 @@ async def crawl_knowledge(
             logger.error(f"Failed to crawl URL {url}: {e}")
 
             # Check if robots.txt error
-            if "robots.txt" in str(e).lower():
+            error_msg = str(e).lower()
+            if "robots.txt" in error_msg:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"Crawling blocked by robots.txt: {str(e)}",
                 )
-            elif "timeout" in str(e).lower():
+            elif "timeout" in error_msg or "timed out" in error_msg:
                 raise HTTPException(
                     status_code=status.HTTP_504_GATEWAY_TIMEOUT,
                     detail=f"Request timed out: {str(e)}",
@@ -242,12 +243,13 @@ async def crawl_knowledge(
         )
     except CrawlError as e:
         # Check error type and return appropriate status code
-        if "robots.txt" in str(e).lower():
+        error_msg = str(e).lower()
+        if "robots.txt" in error_msg:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Crawling blocked by robots.txt: {str(e)}",
             )
-        elif "timeout" in str(e).lower():
+        elif "timeout" in error_msg or "timed out" in error_msg:
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
                 detail=f"Request timed out: {str(e)}",
