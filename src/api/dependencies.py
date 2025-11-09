@@ -19,6 +19,7 @@ from src.infrastructure.database.repositories.project_repository import ProjectR
 from src.infrastructure.database.repositories.task_repository import TaskRepository
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.external.llm import ILLMProvider, ProviderFactory
+from src.infrastructure.external.crawler.crawler_client import WebCrawler
 from src.application.services.text_chunker import TextChunker
 from src.application.services.text_extractor import TextExtractor
 from src.shared.infrastructure.database.connection import init_pool
@@ -86,6 +87,14 @@ async def get_text_chunker() -> TextChunker:
         overlap_chars=settings.file_upload.chunk_overlap_chars,
         preserve_sentences=settings.file_upload.preserve_sentence_boundaries,
     )
+
+
+async def get_web_crawler() -> WebCrawler:
+    """
+    Dependency to get the web crawler service with configured settings.
+    """
+    settings = load_settings()
+    return WebCrawler(settings.crawler)
 
 
 async def get_current_user(

@@ -2,7 +2,15 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, HttpUrl
+
+
+class KnowledgeCrawlRequest(BaseModel):
+    """Request schema for web crawl endpoint."""
+
+    url: HttpUrl
+    project_id: UUID
+    respect_robots_txt: bool = True
 
 
 class KnowledgeUploadResponse(BaseModel):

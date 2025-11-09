@@ -73,3 +73,5 @@ class DatabaseError(Exception):
     """Raised when database operations fail."""
 
 
+class CrawlError(Exception):
+    """Raised when web crawling operations fail."""

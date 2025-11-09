@@ -83,6 +83,16 @@ class FileUploadSettings:
 
 
 @dataclass(frozen=True)
+class CrawlerSettings:
+    """Configuration for web crawler."""
+
+    timeout_seconds: int
+    user_agent: str
+    respect_robots_txt: bool
+    max_retries: int
+
+
+@dataclass(frozen=True)
 class Settings:
     app: AppSettings
     db: DatabaseSettings
@@ -90,6 +100,7 @@ class Settings:
     security: SecuritySettings
     llm: LLMSettings
     file_upload: FileUploadSettings
+    crawler: CrawlerSettings
 
 
 def load_settings() -> Settings:
@@ -132,6 +143,12 @@ def load_settings() -> Settings:
             chunk_size_chars=_get_int("CHUNK_SIZE_CHARS", 2048),
             chunk_overlap_chars=_get_int("CHUNK_OVERLAP_CHARS", 200),
             preserve_sentence_boundaries=os.getenv("PRESERVE_SENTENCE_BOUNDARIES", "true").lower() == "true",
+        ),
+        crawler=CrawlerSettings(
+            timeout_seconds=_get_int("CRAWLER_TIMEOUT_SECONDS", 30),
+            user_agent=os.getenv("CRAWLER_USER_AGENT", "Contextiva/1.0"),
+            respect_robots_txt=os.getenv("CRAWLER_RESPECT_ROBOTS_TXT", "true").lower() == "true",
+            max_retries=_get_int("CRAWLER_MAX_RETRIES", 3),
         ),
     )
 

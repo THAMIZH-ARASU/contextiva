@@ -21,6 +21,7 @@ class DocumentType(str, Enum):
     DOCX = "docx"
     HTML = "html"
     TEXT = "text"
+    WEB_CRAWL = "web_crawl"
 
 
 @dataclass(slots=True)

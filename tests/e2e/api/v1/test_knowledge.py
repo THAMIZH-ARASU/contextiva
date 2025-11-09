@@ -347,3 +347,418 @@ async def test_upload_knowledge_embedding(cleanup_knowledge, test_project_id, au
             else:
                 # Already a list
                 assert all(isinstance(val, (int, float)) for val in embedding)
+
+
+# ============================================================================
+# POST /api/v1/knowledge/crawl - Crawl Knowledge from URL
+# ============================================================================
+
+
+async def test_crawl_knowledge_success(
+    cleanup_knowledge, test_project_id, auth_headers, mock_llm_provider
+):
+    """Test crawling a valid URL returns 202 and creates document."""
+    sample_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Crawl Page</title>
+        <meta name="description" content="Test page description">
+    </head>
+    <body>
+        <h1>Main Heading</h1>
+        <p>This is test content for crawling.</p>
+    </body>
+    </html>
+    """
+    
+    test_url = "https://example.com/test-page"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            # Mock robots.txt response (404 = allow)
+            mock_robots_response = AsyncMock()
+            mock_robots_response.status_code = 404
+            
+            # Mock HTML fetch response
+            mock_html_response = AsyncMock()
+            mock_html_response.text = sample_html
+            mock_html_response.raise_for_status = AsyncMock()
+            
+            # Setup mock to return different responses based on URL
+            async def mock_get(url, **kwargs):
+                if "robots.txt" in url:
+                    return mock_robots_response
+                return mock_html_response
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                    "respect_robots_txt": True,
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 202
+    data = response.json()
+    assert "document_id" in data
+    assert data["status"] == "processing"
+    assert test_url in data["message"]
+
+    # Verify document was created with WebCrawl type
+    pool = await init_pool()
+    async with pool.acquire() as conn:
+        doc = await conn.fetchrow(
+            "SELECT * FROM documents WHERE id = $1", UUID(data["document_id"])
+        )
+        assert doc is not None
+        assert doc["type"] == "web_crawl"
+
+
+async def test_crawl_knowledge_with_metadata(
+    cleanup_knowledge, test_project_id, auth_headers, mock_llm_provider
+):
+    """Test that page title and description are extracted correctly."""
+    sample_html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Metadata Test Page</title>
+        <meta name="description" content="This is a test description">
+        <meta name="keywords" content="test, keywords">
+    </head>
+    <body><p>Content</p></body>
+    </html>
+    """
+    
+    test_url = "https://example.com/metadata-test"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            mock_robots_response = AsyncMock()
+            mock_robots_response.status_code = 404
+            
+            mock_html_response = AsyncMock()
+            mock_html_response.text = sample_html
+            mock_html_response.raise_for_status = AsyncMock()
+            
+            async def mock_get(url, **kwargs):
+                if "robots.txt" in url:
+                    return mock_robots_response
+                return mock_html_response
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 202
+    document_id = UUID(response.json()["document_id"])
+
+    # Verify knowledge items contain metadata
+    pool = await init_pool()
+    async with pool.acquire() as conn:
+        doc = await conn.fetchrow("SELECT * FROM documents WHERE id = $1", document_id)
+        assert "Metadata Test Page" in doc["name"]
+        
+        items = await conn.fetch(
+            "SELECT * FROM knowledge_items WHERE document_id = $1 LIMIT 1", document_id
+        )
+        assert len(items) > 0
+        item = items[0]
+        
+        import json
+        metadata = json.loads(item["metadata"]) if isinstance(item["metadata"], str) else item["metadata"]
+        assert metadata["source_url"] == test_url
+        assert metadata["page_title"] == "Metadata Test Page"
+
+
+async def test_crawl_knowledge_unauthorized(test_project_id):
+    """Test crawling without authentication returns 401."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/api/v1/knowledge/crawl",
+            json={
+                "url": "https://example.com",
+                "project_id": str(test_project_id),
+            },
+        )
+
+    assert response.status_code == 401
+
+
+async def test_crawl_knowledge_invalid_url(auth_headers, test_project_id):
+    """Test crawling with invalid URL returns 422."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        response = await ac.post(
+            "/api/v1/knowledge/crawl",
+            json={
+                "url": "not-a-valid-url",
+                "project_id": str(test_project_id),
+            },
+            headers=auth_headers,
+        )
+
+    assert response.status_code == 422
+
+
+async def test_crawl_knowledge_robots_txt_allowed(
+    cleanup_knowledge, test_project_id, auth_headers, mock_llm_provider
+):
+    """Test crawling respects robots.txt when allowed."""
+    robots_txt = """
+User-agent: *
+Disallow: /admin/
+Allow: /
+"""
+    
+    sample_html = "<html><body><p>Allowed content</p></body></html>"
+    test_url = "https://example.com/public-page"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            mock_robots_response = AsyncMock()
+            mock_robots_response.status_code = 200
+            mock_robots_response.text = robots_txt
+            mock_robots_response.raise_for_status = AsyncMock()
+            
+            mock_html_response = AsyncMock()
+            mock_html_response.text = sample_html
+            mock_html_response.raise_for_status = AsyncMock()
+            
+            async def mock_get(url, **kwargs):
+                if "robots.txt" in url:
+                    return mock_robots_response
+                return mock_html_response
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                    "respect_robots_txt": True,
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 202
+
+
+async def test_crawl_knowledge_robots_txt_disallowed(
+    test_project_id, auth_headers
+):
+    """Test crawling respects robots.txt when disallowed."""
+    robots_txt = """
+User-agent: *
+Disallow: /
+"""
+    
+    test_url = "https://example.com/blocked-page"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            mock_robots_response = AsyncMock()
+            mock_robots_response.status_code = 200
+            mock_robots_response.text = robots_txt
+            mock_robots_response.raise_for_status = AsyncMock()
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_robots_response)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                    "respect_robots_txt": True,
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 403
+    assert "robots.txt" in response.json()["detail"].lower()
+
+
+async def test_crawl_knowledge_ignore_robots_txt(
+    cleanup_knowledge, test_project_id, auth_headers, mock_llm_provider
+):
+    """Test crawling with respect_robots_txt=False bypasses robots.txt."""
+    robots_txt = """
+User-agent: *
+Disallow: /
+"""
+    
+    sample_html = "<html><body><p>Content despite robots.txt</p></body></html>"
+    test_url = "https://example.com/ignore-robots"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            # When respect_robots_txt=False, robots.txt shouldn't be checked
+            mock_html_response = AsyncMock()
+            mock_html_response.text = sample_html
+            mock_html_response.raise_for_status = AsyncMock()
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(return_value=mock_html_response)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                    "respect_robots_txt": False,
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 202
+
+
+async def test_crawl_knowledge_timeout(test_project_id, auth_headers):
+    """Test handling of URL timeout."""
+    import httpx
+    
+    test_url = "https://example.com/slow-page"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                side_effect=httpx.TimeoutException("Request timed out")
+            )
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 504
+    assert "timeout" in response.json()["detail"].lower()
+
+
+async def test_crawl_knowledge_creates_knowledge_items(
+    cleanup_knowledge, test_project_id, auth_headers, mock_llm_provider
+):
+    """Test that crawled content creates knowledge items."""
+    sample_html = """
+    <html>
+    <head><title>Knowledge Test</title></head>
+    <body>
+        <p>This is a paragraph with enough content to create knowledge items.</p>
+        <p>Another paragraph with more test content for chunking.</p>
+    </body>
+    </html>
+    """
+    
+    test_url = "https://example.com/knowledge-test"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            mock_robots_response = AsyncMock()
+            mock_robots_response.status_code = 404
+            
+            mock_html_response = AsyncMock()
+            mock_html_response.text = sample_html
+            mock_html_response.raise_for_status = AsyncMock()
+            
+            async def mock_get(url, **kwargs):
+                if "robots.txt" in url:
+                    return mock_robots_response
+                return mock_html_response
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 202
+    document_id = UUID(response.json()["document_id"])
+
+    # Verify knowledge items were created
+    pool = await init_pool()
+    async with pool.acquire() as conn:
+        items = await conn.fetch(
+            "SELECT * FROM knowledge_items WHERE document_id = $1", document_id
+        )
+        assert len(items) > 0, "Should create at least one knowledge item"
+
+
+async def test_crawl_knowledge_document_type(
+    cleanup_knowledge, test_project_id, auth_headers, mock_llm_provider
+):
+    """Test that crawled documents have type 'web_crawl'."""
+    sample_html = "<html><body><p>Type test</p></body></html>"
+    test_url = "https://example.com/type-test"
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        with patch("src.infrastructure.external.crawler.crawler_client.httpx.AsyncClient") as mock_client:
+            mock_robots_response = AsyncMock()
+            mock_robots_response.status_code = 404
+            
+            mock_html_response = AsyncMock()
+            mock_html_response.text = sample_html
+            mock_html_response.raise_for_status = AsyncMock()
+            
+            async def mock_get(url, **kwargs):
+                if "robots.txt" in url:
+                    return mock_robots_response
+                return mock_html_response
+            
+            mock_client.return_value.__aenter__.return_value.get = AsyncMock(side_effect=mock_get)
+            
+            response = await ac.post(
+                "/api/v1/knowledge/crawl",
+                json={
+                    "url": test_url,
+                    "project_id": str(test_project_id),
+                },
+                headers=auth_headers,
+            )
+
+    assert response.status_code == 202
+    document_id = UUID(response.json()["document_id"])
+
+    # Verify document type
+    pool = await init_pool()
+    async with pool.acquire() as conn:
+        doc = await conn.fetchrow("SELECT * FROM documents WHERE id = $1", document_id)
+        assert doc["type"] == "web_crawl"
