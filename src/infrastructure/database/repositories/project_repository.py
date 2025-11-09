@@ -14,8 +14,8 @@ class ProjectRepository(IProjectRepository):
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO projects (id, name, description, status, tags)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO projects (id, name, description, status, tags, owner_id)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING id
                 """,
                 project.id,
@@ -23,6 +23,7 @@ class ProjectRepository(IProjectRepository):
                 project.description,
                 project.status,
                 project.tags,
+                project.owner_id,
             )
             if row is None:
                 # This should not happen under normal circumstances
@@ -33,7 +34,7 @@ class ProjectRepository(IProjectRepository):
         pool = await init_pool()
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT id, name, description, status, tags FROM projects WHERE id = $1",
+                "SELECT id, name, description, status, tags, owner_id FROM projects WHERE id = $1",
                 project_id,
             )
             if row is None:
@@ -41,6 +42,7 @@ class ProjectRepository(IProjectRepository):
             return Project(
                 id=row["id"],
                 name=row["name"],
+                owner_id=row["owner_id"],
                 description=row["description"],
                 status=row["status"],
                 tags=list(row["tags"]) if row["tags"] is not None else None,
@@ -51,7 +53,7 @@ class ProjectRepository(IProjectRepository):
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT id, name, description, status, tags
+                SELECT id, name, description, status, tags, owner_id
                 FROM projects
                 ORDER BY created_at DESC
                 LIMIT $1 OFFSET $2
@@ -65,6 +67,7 @@ class ProjectRepository(IProjectRepository):
                 Project(
                     id=row["id"],
                     name=row["name"],
+                    owner_id=row["owner_id"],
                     description=row["description"],
                     status=row["status"],
                     tags=list(row["tags"]) if row["tags"] is not None else None,
@@ -78,7 +81,7 @@ class ProjectRepository(IProjectRepository):
             row = await conn.fetchrow(
                 """
                 UPDATE projects
-                SET name = $2, description = $3, status = $4, tags = $5, updated_at = now()
+                SET name = $2, description = $3, status = $4, tags = $5, owner_id = $6, updated_at = now()
                 WHERE id = $1
                 RETURNING id
                 """,
@@ -87,6 +90,7 @@ class ProjectRepository(IProjectRepository):
                 project.description,
                 project.status,
                 project.tags,
+                project.owner_id,
             )
             if row is None:
                 raise ProjectNotFoundError(str(project.id))

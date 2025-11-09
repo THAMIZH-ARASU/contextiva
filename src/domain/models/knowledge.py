@@ -143,6 +143,22 @@ class IKnowledgeRepository(ABC):
         pass
 
     @abstractmethod
+    async def vector_search(
+        self, project_id: UUID, query_embedding: list[float], top_k: int
+    ) -> list[tuple[KnowledgeItem, float]]:
+        """Perform vector similarity search against knowledge items.
+        
+        Args:
+            project_id: UUID of the project to filter results by
+            query_embedding: Query embedding vector
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of tuples (KnowledgeItem, similarity_score) ordered by similarity (highest first)
+        """
+        pass
+
+    @abstractmethod
     async def delete(self, item_id: UUID) -> bool:
         """Delete a knowledge item by ID.
         

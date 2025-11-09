@@ -93,6 +93,14 @@ class CrawlerSettings:
 
 
 @dataclass(frozen=True)
+class RAGSettings:
+    """Configuration for RAG (Retrieval-Augmented Generation) query."""
+
+    default_top_k: int
+    max_top_k: int
+
+
+@dataclass(frozen=True)
 class Settings:
     app: AppSettings
     db: DatabaseSettings
@@ -101,6 +109,7 @@ class Settings:
     llm: LLMSettings
     file_upload: FileUploadSettings
     crawler: CrawlerSettings
+    rag: RAGSettings
 
 
 def load_settings() -> Settings:
@@ -149,6 +158,10 @@ def load_settings() -> Settings:
             user_agent=os.getenv("CRAWLER_USER_AGENT", "Contextiva/1.0"),
             respect_robots_txt=os.getenv("CRAWLER_RESPECT_ROBOTS_TXT", "true").lower() == "true",
             max_retries=_get_int("CRAWLER_MAX_RETRIES", 3),
+        ),
+        rag=RAGSettings(
+            default_top_k=_get_int("RAG_DEFAULT_TOP_K", 5),
+            max_top_k=_get_int("RAG_MAX_TOP_K", 50),
         ),
     )
 

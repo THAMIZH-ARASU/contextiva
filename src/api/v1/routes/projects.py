@@ -40,6 +40,7 @@ async def create_project(
     # Create domain entity from schema
     project = Project(
         name=project_data.name,
+        owner_id=current_user.id,
         description=project_data.description,
         tags=project_data.tags,
     )
@@ -160,6 +161,7 @@ async def update_project(
         updated_project = Project(
             id=existing_project.id,
             name=existing_project.name,
+            owner_id=existing_project.owner_id,
             description=existing_project.description,
             status=existing_project.status,
             tags=existing_project.tags,

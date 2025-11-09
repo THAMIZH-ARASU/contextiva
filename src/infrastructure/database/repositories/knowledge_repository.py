@@ -294,6 +294,54 @@ class KnowledgeRepository(IKnowledgeRepository):
             for row in rows
         ]
 
+    async def vector_search(
+        self, project_id: UUID, query_embedding: list[float], top_k: int
+    ) -> list[tuple[KnowledgeItem, float]]:
+        """Perform vector similarity search against knowledge items filtered by project.
+        
+        Args:
+            project_id: UUID of the project to filter results by
+            query_embedding: Query embedding vector
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of tuples (KnowledgeItem, similarity_score) ordered by similarity (highest first)
+        """
+        # Convert embedding list to pgvector string format
+        embedding_str = '[' + ','.join(str(x) for x in query_embedding) + ']'
+        
+        # Use cosine distance operator (<->) - lower distance = more similar
+        # Convert to similarity score: 1 - cosine_distance
+        query = """
+            SELECT ki.id, ki.document_id, ki.chunk_text, ki.chunk_index, 
+                   ki.embedding, ki.metadata, ki.created_at,
+                   1 - (ki.embedding <=> $1::vector) as similarity_score
+            FROM knowledge_items ki
+            JOIN documents d ON ki.document_id = d.id
+            WHERE d.project_id = $2
+            ORDER BY ki.embedding <=> $1::vector ASC
+            LIMIT $3
+        """
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, embedding_str, project_id, top_k)
+
+        return [
+            (
+                KnowledgeItem(
+                    id=row["id"],
+                    document_id=row["document_id"],
+                    chunk_text=row["chunk_text"],
+                    chunk_index=row["chunk_index"],
+                    embedding=_parse_pgvector(row["embedding"]),
+                    metadata=_parse_metadata(row["metadata"]),
+                    created_at=row["created_at"],
+                ),
+                float(row["similarity_score"]),
+            )
+            for row in rows
+        ]
+
     async def delete(self, item_id: UUID) -> bool:
         """Delete a knowledge item by ID.
         

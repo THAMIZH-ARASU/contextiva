@@ -6,6 +6,10 @@ class UserNotFoundError(Exception):
     """Raised when a User cannot be found by the provided identifier."""
 
 
+class UnauthorizedAccessError(Exception):
+    """Raised when a user attempts to access a resource they don't have permission for."""
+
+
 class InvalidCredentialsError(Exception):
     """Raised when authentication credentials are invalid."""
 

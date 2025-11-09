@@ -20,17 +20,19 @@ async def create_test_project():
     """Helper to create a test project and return pool + project_id."""
     pool = await get_fresh_pool()
     project_id = uuid4()
+    owner_id = uuid4()
     async with pool.acquire() as conn:
         await conn.execute(
             """
-            INSERT INTO projects (id, name, description, status, tags, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+            INSERT INTO projects (id, name, description, status, tags, owner_id, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
             """,
             project_id,
             "Test Project",
             "Integration test project",
             "Active",
             [],
+            owner_id,
         )
     return pool, project_id
 

@@ -16,6 +16,7 @@ class Project:
 
     # Required fields must come before fields with defaults
     name: str
+    owner_id: UUID
     id: UUID = field(default_factory=uuid4)
     description: Optional[str] = None
     status: str = field(default="Active")
