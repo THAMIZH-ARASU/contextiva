@@ -1,7 +1,7 @@
 """Use case for ingesting knowledge from files."""
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -83,8 +83,8 @@ class IngestKnowledgeUseCase:
                 type=doc_type,
                 version="1.0.0",
                 content_hash=content_hash,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
 
             # Save document to database
@@ -115,7 +115,7 @@ class IngestKnowledgeUseCase:
                         chunk_index=chunk.chunk_index,
                         embedding=embedding,
                         metadata=chunk.to_metadata(),
-                        created_at=datetime.utcnow(),
+                        created_at=datetime.now(timezone.utc),
                     )
                     knowledge_items.append(knowledge_item)
 

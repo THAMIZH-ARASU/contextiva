@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -51,8 +51,8 @@ async def create_task(
         priority=task_data.priority,
         assignee=task_data.assignee,
         dependencies=task_data.dependencies,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
     # Persist to database
@@ -218,7 +218,7 @@ async def update_task(
         task.dependencies = update_data.dependencies
 
     # Update timestamp
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now(timezone.utc)
 
     # Persist changes
     try:

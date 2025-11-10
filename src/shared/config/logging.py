@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:  # type: ignore[override]
         payload: Dict[str, Any] = {
-            "ts": datetime.utcnow().isoformat(timespec="milliseconds") + "Z",
+            "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds") + "Z",
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

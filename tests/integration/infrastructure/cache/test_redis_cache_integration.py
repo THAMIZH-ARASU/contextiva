@@ -2,7 +2,7 @@
 
 import pytest
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.infrastructure.cache.redis_cache import RedisCacheService
@@ -249,7 +249,7 @@ class TestRedisCacheIntegration:
                         "page": 142,
                         "tags": ["ML", "AI", "fundamentals"],
                     },
-                    "created_at": datetime.utcnow().isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
                     "similarity_score": 0.95,
                     "bm25_score": 12.5,
                     "rerank_score": 0.98,
@@ -265,7 +265,7 @@ class TestRedisCacheIntegration:
                         "year": 2024,
                         "authors": ["John Doe", "Jane Smith"],
                     },
-                    "created_at": datetime.utcnow().isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
                     "similarity_score": 0.87,
                     "bm25_score": 8.3,
                     "rerank_score": 0.92,

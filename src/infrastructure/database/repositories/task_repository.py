@@ -4,7 +4,7 @@ This module provides the concrete repository implementation for Task entities
 using asyncpg and PostgreSQL.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -43,7 +43,7 @@ class TaskRepository(ITaskRepository):
             RETURNING id, project_id, title, description, status, priority,
                       assignee, dependencies, created_at, updated_at
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -255,7 +255,7 @@ class TaskRepository(ITaskRepository):
             RETURNING id, project_id, title, description, status, priority,
                       assignee, dependencies, created_at, updated_at
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(

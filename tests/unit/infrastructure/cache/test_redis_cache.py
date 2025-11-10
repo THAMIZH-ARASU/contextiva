@@ -319,5 +319,5 @@ async def test_close_connection(cache_service, mock_redis_client):
         await cache_service.close()
 
         # Assert
-        mock_redis_client.close.assert_awaited_once()
+        mock_redis_client.aclose.assert_awaited_once()
         assert cache_service._client is None, "Client should be set to None after close"

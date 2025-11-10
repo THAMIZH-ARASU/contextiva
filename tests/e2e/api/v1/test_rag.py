@@ -258,7 +258,8 @@ async def test_rag_query_response_schema_validation(auth_headers, mock_embedding
 
 async def test_rag_query_with_hybrid_search_enabled(auth_headers, mock_embedding_provider):
     """Test RAG query with use_hybrid_search=True combines vector + keyword search."""
-    with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider):
+    with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider), \
+         patch("src.infrastructure.external.llm.provider_factory.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider):
         async with AsyncClient(app=app, base_url="http://test") as ac:
             # Create project
             project_response = await ac.post(
@@ -269,22 +270,21 @@ async def test_rag_query_with_hybrid_search_enabled(auth_headers, mock_embedding
             assert project_response.status_code == 201
             project_id = project_response.json()["id"]
             
-            # Upload a document with some content
+            # Upload a document with some content using knowledge/upload
             document_response = await ac.post(
-                "/api/v1/documents",
+                "/api/v1/knowledge/upload",
                 data={
                     "project_id": project_id,
-                    "title": "Machine Learning Guide",
                 },
                 files={
-                    "file": ("ml_guide.txt", io.BytesIO(b"Machine learning is awesome. Deep learning uses neural networks."), "text/plain")
+                    "file": ("ml_guide.md", io.BytesIO(b"Machine learning is awesome. Deep learning uses neural networks."), "text/markdown")
                 },
                 headers=auth_headers,
             )
-            assert document_response.status_code == 201
+            assert document_response.status_code == 202
             
             # Wait for document processing
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             
             # Query with hybrid search enabled
             response = await ac.post(
@@ -311,7 +311,8 @@ async def test_rag_query_with_reranking_enabled(auth_headers, mock_embedding_pro
     mock_llm_provider.generate_completion = AsyncMock(return_value="[0, 1, 2]")  # Re-ranked indices
     
     with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider), \
-         patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_llm_provider", return_value=mock_llm_provider):
+         patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_llm_provider", return_value=mock_llm_provider), \
+         patch("src.infrastructure.external.llm.provider_factory.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider):
         
         async with AsyncClient(app=app, base_url="http://test") as ac:
             # Create project
@@ -323,22 +324,21 @@ async def test_rag_query_with_reranking_enabled(auth_headers, mock_embedding_pro
             assert project_response.status_code == 201
             project_id = project_response.json()["id"]
             
-            # Upload a document
+            # Upload a document using knowledge/upload
             document_response = await ac.post(
-                "/api/v1/documents",
+                "/api/v1/knowledge/upload",
                 data={
                     "project_id": project_id,
-                    "title": "NLP Concepts",
                 },
                 files={
-                    "file": ("nlp.txt", io.BytesIO(b"Natural language processing is important. Transformers revolutionized NLP."), "text/plain")
+                    "file": ("nlp.md", io.BytesIO(b"Natural language processing is important. Transformers revolutionized NLP."), "text/markdown")
                 },
                 headers=auth_headers,
             )
-            assert document_response.status_code == 201
+            assert document_response.status_code == 202
             
             # Wait for document processing
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             
             # Query with re-ranking enabled
             response = await ac.post(
@@ -367,7 +367,8 @@ async def test_rag_query_with_hybrid_and_reranking_combined(auth_headers, mock_e
     mock_llm_provider.generate_completion = AsyncMock(return_value="[0]")
     
     with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider), \
-         patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_llm_provider", return_value=mock_llm_provider):
+         patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_llm_provider", return_value=mock_llm_provider), \
+         patch("src.infrastructure.external.llm.provider_factory.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider):
         
         async with AsyncClient(app=app, base_url="http://test") as ac:
             # Create project
@@ -379,22 +380,21 @@ async def test_rag_query_with_hybrid_and_reranking_combined(auth_headers, mock_e
             assert project_response.status_code == 201
             project_id = project_response.json()["id"]
             
-            # Upload a document
+            # Upload a document using knowledge/upload
             document_response = await ac.post(
-                "/api/v1/documents",
+                "/api/v1/knowledge/upload",
                 data={
                     "project_id": project_id,
-                    "title": "AI Overview",
                 },
                 files={
-                    "file": ("ai.txt", io.BytesIO(b"Artificial intelligence encompasses machine learning and deep learning."), "text/plain")
+                    "file": ("ai.md", io.BytesIO(b"Artificial intelligence encompasses machine learning and deep learning."), "text/markdown")
                 },
                 headers=auth_headers,
             )
-            assert document_response.status_code == 201
+            assert document_response.status_code == 202
             
             # Wait for document processing
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             
             # Query with both flags enabled
             response = await ac.post(
@@ -421,7 +421,8 @@ async def test_rag_query_response_schema_with_new_score_fields(auth_headers, moc
     mock_llm_provider.generate_completion = AsyncMock(return_value="[0]")
     
     with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider), \
-         patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_llm_provider", return_value=mock_llm_provider):
+         patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory.get_llm_provider", return_value=mock_llm_provider), \
+         patch("src.infrastructure.external.llm.provider_factory.ProviderFactory.get_embedding_provider", return_value=mock_embedding_provider):
         
         async with AsyncClient(app=app, base_url="http://test") as ac:
             # Create project
@@ -433,22 +434,21 @@ async def test_rag_query_response_schema_with_new_score_fields(auth_headers, moc
             assert project_response.status_code == 201
             project_id = project_response.json()["id"]
             
-            # Upload a document
+            # Upload a document using knowledge/upload
             document_response = await ac.post(
-                "/api/v1/documents",
+                "/api/v1/knowledge/upload",
                 data={
                     "project_id": project_id,
-                    "title": "Test Document",
                 },
                 files={
-                    "file": ("test.txt", io.BytesIO(b"Test content for schema validation."), "text/plain")
+                    "file": ("test.md", io.BytesIO(b"Test content for schema validation."), "text/markdown")
                 },
                 headers=auth_headers,
             )
-            assert document_response.status_code == 201
+            assert document_response.status_code == 202
             
             # Wait for document processing
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             
             # Query with all features enabled
             response = await ac.post(

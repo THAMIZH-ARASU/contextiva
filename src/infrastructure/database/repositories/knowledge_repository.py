@@ -5,7 +5,7 @@ using asyncpg, PostgreSQL, and pgvector for semantic search.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 from uuid import UUID
 
@@ -74,7 +74,7 @@ class KnowledgeRepository(IKnowledgeRepository):
             VALUES ($1, $2, $3, $4, $5::vector, $6::jsonb, $7)
             RETURNING id, document_id, chunk_text, chunk_index, embedding, metadata, created_at
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         # Convert embedding list to pgvector string format
         embedding_str = '[' + ','.join(str(x) for x in item.embedding) + ']'
         # Convert metadata dict to JSON string
@@ -124,7 +124,7 @@ class KnowledgeRepository(IKnowledgeRepository):
             VALUES ($1, $2, $3, $4, $5::vector, $6::jsonb, $7)
             RETURNING id, document_id, chunk_text, chunk_index, embedding, metadata, created_at
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         async with self.pool.acquire() as conn:
             # Execute batch insert

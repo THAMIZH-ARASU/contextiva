@@ -4,7 +4,7 @@ This module provides the concrete repository implementation for Document entitie
 using asyncpg and PostgreSQL.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -41,7 +41,7 @@ class DocumentRepository(IDocumentRepository):
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING id, project_id, name, type, version, content_hash, created_at, updated_at
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
@@ -192,7 +192,7 @@ class DocumentRepository(IDocumentRepository):
             WHERE id = $1
             RETURNING id, project_id, name, type, version, content_hash, created_at, updated_at
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(

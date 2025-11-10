@@ -6,10 +6,15 @@ with status tracking, priorities, and dependency management.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 from uuid import UUID
+
+
+def _utcnow() -> datetime:
+    """Helper function to get current UTC datetime."""
+    return datetime.now(timezone.utc)
 
 
 class TaskStatus(str, Enum):
@@ -55,8 +60,8 @@ class Task:
     priority: TaskPriority
     assignee: Optional[str]
     dependencies: list[UUID] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=_utcnow)
+    updated_at: datetime = field(default_factory=_utcnow)
 
     def __post_init__(self) -> None:
         """Validate task attributes after initialization."""

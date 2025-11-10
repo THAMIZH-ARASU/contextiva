@@ -1,7 +1,7 @@
 """Unit tests for QueryKnowledgeUseCase."""
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4, UUID
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -76,7 +76,7 @@ def sample_knowledge_items():
             chunk_index=0,
             embedding=[0.1] * 1536,
             metadata={"source": "test1"},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
         KnowledgeItem(
             id=uuid4(),
@@ -85,7 +85,7 @@ def sample_knowledge_items():
             chunk_index=1,
             embedding=[0.2] * 1536,
             metadata={"source": "test2"},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
         KnowledgeItem(
             id=uuid4(),
@@ -94,7 +94,7 @@ def sample_knowledge_items():
             chunk_index=2,
             embedding=[0.3] * 1536,
             metadata={"source": "test3"},
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         ),
     ]
 
@@ -390,7 +390,7 @@ class TestQueryKnowledgeUseCase:
                     "chunk_index": 0,
                     "embedding": [0.1] * 1536,
                     "metadata": {"source": "test1"},
-                    "created_at": datetime.utcnow().isoformat(),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
                     "similarity_score": 0.95,
                     "bm25_score": None,
                     "rerank_score": None,

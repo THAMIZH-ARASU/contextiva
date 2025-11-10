@@ -2,7 +2,7 @@
 
 import pytest
 import asyncpg
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.domain.models.document import Document, DocumentType
@@ -63,7 +63,7 @@ class TestKnowledgeRepositoryKeywordSearch:
         doc_repo = DocumentRepository(pool)
         knowledge_repo = KnowledgeRepository(pool)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create document
         doc_id = uuid4()
@@ -156,7 +156,7 @@ class TestKnowledgeRepositoryKeywordSearch:
         doc_repo = DocumentRepository(pool1)
         knowledge_repo = KnowledgeRepository(pool1)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create document in project 1
         doc1_id = uuid4()
@@ -238,7 +238,7 @@ class TestKnowledgeRepositoryKeywordSearch:
         doc_repo = DocumentRepository(pool)
         knowledge_repo = KnowledgeRepository(pool)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create document
         doc_id = uuid4()
@@ -292,7 +292,7 @@ class TestKnowledgeRepositoryKeywordSearch:
         doc_repo = DocumentRepository(pool)
         knowledge_repo = KnowledgeRepository(pool)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create document
         doc_id = uuid4()
@@ -363,7 +363,7 @@ class TestKnowledgeRepositoryKeywordSearch:
         doc_repo = DocumentRepository(pool)
         knowledge_repo = KnowledgeRepository(pool)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create document
         doc_id = uuid4()
@@ -441,7 +441,7 @@ class TestKnowledgeRepositoryKeywordSearch:
         doc_repo = DocumentRepository(pool)
         knowledge_repo = KnowledgeRepository(pool)
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Create document
         doc_id = uuid4()
