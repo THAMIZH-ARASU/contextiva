@@ -342,6 +342,59 @@ class KnowledgeRepository(IKnowledgeRepository):
             for row in rows
         ]
 
+    async def keyword_search(
+        self, project_id: UUID, query_text: str, top_k: int
+    ) -> list[tuple[KnowledgeItem, float]]:
+        """Perform keyword/BM25 full-text search against knowledge items filtered by project.
+        
+        Args:
+            project_id: UUID of the project to filter results by
+            query_text: Query text for full-text search
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of tuples (KnowledgeItem, bm25_score) ordered by relevance (highest first)
+        """
+        # Use PostgreSQL's ts_rank_cd() for BM25-like scoring
+        # to_tsvector() converts text to searchable document
+        # to_tsquery() converts query to search query (handles multiple words)
+        # plainto_tsquery is more forgiving - handles natural language queries
+        query = """
+            SELECT ki.id, ki.document_id, ki.chunk_text, ki.chunk_index, 
+                   ki.embedding, ki.metadata, ki.created_at,
+                   ts_rank_cd(to_tsvector('english', ki.chunk_text), 
+                              plainto_tsquery('english', $1)) as bm25_score
+            FROM knowledge_items ki
+            JOIN documents d ON ki.document_id = d.id
+            WHERE d.project_id = $2
+              AND to_tsvector('english', ki.chunk_text) @@ plainto_tsquery('english', $1)
+            ORDER BY bm25_score DESC
+            LIMIT $3
+        """
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, query_text, project_id, top_k)
+
+        # Return empty list if no matches (rather than error)
+        if not rows:
+            return []
+
+        return [
+            (
+                KnowledgeItem(
+                    id=row["id"],
+                    document_id=row["document_id"],
+                    chunk_text=row["chunk_text"],
+                    chunk_index=row["chunk_index"],
+                    embedding=_parse_pgvector(row["embedding"]),
+                    metadata=_parse_metadata(row["metadata"]),
+                    created_at=row["created_at"],
+                ),
+                float(row["bm25_score"]),
+            )
+            for row in rows
+        ]
+
     async def delete(self, item_id: UUID) -> bool:
         """Delete a knowledge item by ID.
         

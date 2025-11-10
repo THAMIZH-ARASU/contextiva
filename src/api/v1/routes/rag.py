@@ -21,16 +21,17 @@ async def query_knowledge(
     knowledge_repo: IKnowledgeRepository = Depends(get_knowledge_repository),
     project_repo: IProjectRepository = Depends(get_project_repository),
 ) -> RAGQueryResponse:
-    """Query knowledge items using RAG (vector similarity search).
+    """Query knowledge items using RAG (vector similarity search with optional hybrid/re-ranking).
     
     Args:
-        request: RAG query request containing project_id, query_text, and optional top_k.
+        request: RAG query request containing project_id, query_text, optional top_k,
+                 use_hybrid_search, and use_re_ranking flags.
         current_user: Authenticated user making the request.
         knowledge_repo: Knowledge repository dependency.
         project_repo: Project repository dependency.
         
     Returns:
-        RAGQueryResponse containing matched knowledge items with similarity scores.
+        RAGQueryResponse containing matched knowledge items with scores.
         
     Raises:
         HTTPException: 404 if project not found, 403 if unauthorized, 422 if validation fails.
@@ -44,6 +45,7 @@ async def query_knowledge(
             knowledge_repo=knowledge_repo,
             project_repo=project_repo,
             settings=settings,
+            cache_service=None,  # TODO: Initialize Redis cache service from dependency
         )
         
         result = await use_case.execute(
@@ -51,6 +53,8 @@ async def query_knowledge(
             query_text=request.query_text,
             user_id=current_user.id,
             top_k=request.top_k,
+            use_hybrid_search=request.use_hybrid_search,
+            use_re_ranking=request.use_re_ranking,
         )
         
         # Map domain result to API response
@@ -59,11 +63,13 @@ async def query_knowledge(
                 KnowledgeItemResult(
                     id=item.id,
                     chunk_text=item.chunk_text,
-                    similarity_score=score,
+                    similarity_score=similarity_score,
+                    bm25_score=bm25_score,
+                    rerank_score=rerank_score,
                     metadata=item.metadata,
                     document_id=item.document_id,
                 )
-                for item, score in result.results
+                for item, similarity_score, bm25_score, rerank_score in result.results
             ],
             query_id=result.query_id,
             total_results=result.total_results,

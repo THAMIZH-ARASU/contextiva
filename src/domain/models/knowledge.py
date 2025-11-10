@@ -159,6 +159,22 @@ class IKnowledgeRepository(ABC):
         pass
 
     @abstractmethod
+    async def keyword_search(
+        self, project_id: UUID, query_text: str, top_k: int
+    ) -> list[tuple[KnowledgeItem, float]]:
+        """Perform keyword/BM25 full-text search against knowledge items.
+        
+        Args:
+            project_id: UUID of the project to filter results by
+            query_text: Query text for full-text search
+            top_k: Maximum number of results to return
+            
+        Returns:
+            List of tuples (KnowledgeItem, bm25_score) ordered by relevance (highest first)
+        """
+        pass
+
+    @abstractmethod
     async def delete(self, item_id: UUID) -> bool:
         """Delete a knowledge item by ID.
         

@@ -98,6 +98,18 @@ class RAGSettings:
 
     default_top_k: int
     max_top_k: int
+    # Hybrid search configuration
+    use_hybrid_search: bool
+    hybrid_search_weight_vector: float
+    hybrid_search_weight_bm25: float
+    # Re-ranking configuration
+    use_reranking: bool
+    reranking_model: str
+    reranking_top_k: int
+    # Redis caching configuration
+    cache_enabled: bool
+    cache_ttl: int
+    cache_key_prefix: str
 
 
 @dataclass(frozen=True)
@@ -162,6 +174,15 @@ def load_settings() -> Settings:
         rag=RAGSettings(
             default_top_k=_get_int("RAG_DEFAULT_TOP_K", 5),
             max_top_k=_get_int("RAG_MAX_TOP_K", 50),
+            use_hybrid_search=os.getenv("RAG_USE_HYBRID_SEARCH", "false").lower() == "true",
+            hybrid_search_weight_vector=float(os.getenv("RAG_HYBRID_WEIGHT_VECTOR", "0.7")),
+            hybrid_search_weight_bm25=float(os.getenv("RAG_HYBRID_WEIGHT_BM25", "0.3")),
+            use_reranking=os.getenv("RAG_USE_RERANKING", "false").lower() == "true",
+            reranking_model=os.getenv("RAG_RERANKING_MODEL", "gpt-4o-mini"),
+            reranking_top_k=_get_int("RAG_RERANKING_TOP_K", 10),
+            cache_enabled=os.getenv("RAG_CACHE_ENABLED", "true").lower() == "true",
+            cache_ttl=_get_int("RAG_CACHE_TTL", 3600),
+            cache_key_prefix=os.getenv("RAG_CACHE_KEY_PREFIX", "rag:query:"),
         ),
     )
 
