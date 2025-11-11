@@ -234,3 +234,4 @@ migration.ini
 migration/
 chats*/
 bigfile_from story 1.4
+test_commands.md

@@ -134,12 +134,8 @@ class TestJWTTokens:
         """Test token verification with an expired token."""
         # Arrange
         data = {"sub": "testuser"}
-        # Create token that expired 1 hour ago
-        expired_time = datetime.utcnow() - timedelta(hours=1)
-        
-        with patch('src.shared.utils.security.datetime') as mock_datetime:
-            mock_datetime.utcnow.return_value = expired_time
-            token = create_access_token(data, expires_delta=timedelta(minutes=1))
+        # Create token with -1 minute expiration (immediately expired)
+        token = create_access_token(data, expires_delta=timedelta(minutes=-1))
 
         # Act & Assert
         with pytest.raises(JWTError):

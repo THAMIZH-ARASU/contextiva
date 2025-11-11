@@ -1,5 +1,6 @@
 import pytest
 import pytest_asyncio
+from uuid import uuid4
 
 from src.domain.models.project import Project
 from src.infrastructure.database.repositories.project_repository import ProjectRepository
@@ -25,7 +26,7 @@ async def test_crud_project_repository():
     repo = ProjectRepository()
 
     # Create
-    p = Project(name="RepoTest", description="desc", tags=["t1"]) 
+    p = Project(name="RepoTest", description="desc", tags=["t1"], owner_id=str(uuid4())) 
     created = await repo.create(p)
     assert created.id == p.id
 
