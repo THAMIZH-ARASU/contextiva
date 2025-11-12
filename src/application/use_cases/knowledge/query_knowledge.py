@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 from src.application.services.hybrid_search_service import HybridSearchService
 from src.application.services.reranking_service import RerankingService
+from src.application.services.synthesis_service import SynthesisService
 from src.domain.models.knowledge import IKnowledgeRepository, KnowledgeItem
 from src.domain.models.project import IProjectRepository
 from src.infrastructure.cache.redis_cache import RedisCacheService
@@ -23,6 +24,7 @@ class QueryKnowledgeResult:
         query_id: Unique identifier for this query.
         results: List of tuples (KnowledgeItem, similarity_score, bm25_score, rerank_score).
         total_results: Total number of results returned.
+        synthesized_answer: Optional synthesized natural language answer.
     """
 
     def __init__(
@@ -30,6 +32,7 @@ class QueryKnowledgeResult:
         query_id: UUID,
         results: list[tuple[KnowledgeItem, float, Optional[float], Optional[float]]],
         total_results: int,
+        synthesized_answer: Optional[str] = None,
     ) -> None:
         """Initialize query result.
         
@@ -37,10 +40,12 @@ class QueryKnowledgeResult:
             query_id: Unique identifier for this query.
             results: List of tuples (KnowledgeItem, similarity_score, bm25_score, rerank_score).
             total_results: Total number of results returned.
+            synthesized_answer: Optional synthesized natural language answer.
         """
         self.query_id = query_id
         self.results = results
         self.total_results = total_results
+        self.synthesized_answer = synthesized_answer
 
 
 class QueryKnowledgeUseCase:
@@ -67,6 +72,7 @@ class QueryKnowledgeUseCase:
         self.cache_service = cache_service
         self.hybrid_search_service = HybridSearchService()
         self.reranking_service = RerankingService()
+        self.synthesis_service = SynthesisService()
 
     async def execute(
         self,
@@ -76,6 +82,7 @@ class QueryKnowledgeUseCase:
         top_k: Optional[int] = None,
         use_hybrid_search: bool = False,
         use_re_ranking: bool = False,
+        use_agentic_rag: bool = False,
     ) -> QueryKnowledgeResult:
         """Execute RAG query to retrieve relevant knowledge items.
         
@@ -86,6 +93,7 @@ class QueryKnowledgeUseCase:
             top_k: Optional number of results to return (uses settings default if not provided).
             use_hybrid_search: Enable hybrid vector + keyword search.
             use_re_ranking: Enable LLM-based re-ranking of results.
+            use_agentic_rag: Enable synthesis of natural language answer.
             
         Returns:
             QueryKnowledgeResult containing matched knowledge items and scores.
@@ -114,6 +122,8 @@ class QueryKnowledgeUseCase:
             use_hybrid_search = True
         if self.settings.rag.use_reranking and not use_re_ranking:
             use_re_ranking = True
+        if self.settings.rag.use_agentic_rag and not use_agentic_rag:
+            use_agentic_rag = True
 
         # Step 3: Check cache if enabled
         cache_key = None
@@ -123,6 +133,7 @@ class QueryKnowledgeUseCase:
                 query_text=query_text,
                 use_hybrid=use_hybrid_search,
                 use_rerank=use_re_ranking,
+                use_agentic=use_agentic_rag,
                 top_k=effective_top_k,
                 prefix=self.settings.rag.cache_key_prefix,
             )
@@ -204,15 +215,45 @@ class QueryKnowledgeUseCase:
                     (item, score, None, None) for item, score in search_results
                 ]
 
-        # Step 7: Create result with unique query ID
+        # Step 7: Apply synthesis if enabled
+        synthesized_answer = None
+        if use_agentic_rag and final_results:
+            try:
+                # Get LLM provider for synthesis
+                llm_provider = ProviderFactory.get_llm_provider(
+                    model_name=self.settings.rag.agentic_rag_model
+                )
+
+                # Extract KnowledgeItems from final_results
+                chunks_for_synthesis = [item for item, _, _, _ in final_results]
+
+                # Synthesize answer
+                synthesized_answer = await self.synthesis_service.synthesize(
+                    query=query_text,
+                    chunks=chunks_for_synthesis,
+                    llm_provider=llm_provider,
+                    settings=self.settings.rag,
+                )
+
+                if synthesized_answer:
+                    logger.info(f"Successfully synthesized answer for query on project {project_id}")
+                else:
+                    logger.warning(f"Synthesis returned None for query on project {project_id}")
+            except Exception as e:
+                # Graceful degradation: Log error but don't fail the query
+                logger.error(f"Synthesis failed for query on project {project_id}: {e}")
+                synthesized_answer = None
+
+        # Step 8: Create result with unique query ID
         query_id = uuid4()
         result = QueryKnowledgeResult(
             query_id=query_id,
             results=final_results,
             total_results=len(final_results),
+            synthesized_answer=synthesized_answer,
         )
 
-        # Step 8: Cache result if enabled
+        # Step 9: Cache result if enabled
         if cache_key and self.cache_service and self.settings.rag.cache_enabled:
             await self._cache_result(cache_key, result)
 
@@ -291,6 +332,7 @@ class QueryKnowledgeUseCase:
                 query_id=UUID(data["query_id"]),
                 results=results,
                 total_results=data["total_results"],
+                synthesized_answer=data.get("synthesized_answer"),
             )
         except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
             logger.error(f"Failed to deserialize cached result: {e}")
@@ -327,6 +369,7 @@ class QueryKnowledgeUseCase:
                 "query_id": str(result.query_id),
                 "results": serialized_results,
                 "total_results": result.total_results,
+                "synthesized_answer": result.synthesized_answer,
             })
 
             await self.cache_service.set(

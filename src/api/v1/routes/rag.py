@@ -55,6 +55,7 @@ async def query_knowledge(
             top_k=request.top_k,
             use_hybrid_search=request.use_hybrid_search,
             use_re_ranking=request.use_re_ranking,
+            use_agentic_rag=request.use_agentic_rag,
         )
         
         # Map domain result to API response
@@ -73,6 +74,7 @@ async def query_knowledge(
             ],
             query_id=result.query_id,
             total_results=result.total_results,
+            synthesized_answer=result.synthesized_answer,
         )
     except ProjectNotFoundError as e:
         raise HTTPException(

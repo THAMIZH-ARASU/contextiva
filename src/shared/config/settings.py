@@ -110,6 +110,12 @@ class RAGSettings:
     cache_enabled: bool
     cache_ttl: int
     cache_key_prefix: str
+    # Agentic RAG configuration
+    use_agentic_rag: bool
+    agentic_rag_model: str
+    agentic_rag_max_tokens: int
+    agentic_rag_temperature: float
+    agentic_rag_system_prompt: str
 
 
 @dataclass(frozen=True)
@@ -183,6 +189,18 @@ def load_settings() -> Settings:
             cache_enabled=os.getenv("RAG_CACHE_ENABLED", "true").lower() == "true",
             cache_ttl=_get_int("RAG_CACHE_TTL", 3600),
             cache_key_prefix=os.getenv("RAG_CACHE_KEY_PREFIX", "rag:query:"),
+            # Agentic RAG configuration
+            use_agentic_rag=os.getenv("RAG_USE_AGENTIC", "false").lower() == "true",
+            agentic_rag_model=os.getenv("RAG_AGENTIC_MODEL", "stable-code:3b-code-q5_K_M"),
+            agentic_rag_max_tokens=_get_int("RAG_AGENTIC_MAX_TOKENS", 1000),
+            agentic_rag_temperature=float(os.getenv("RAG_AGENTIC_TEMPERATURE", "0.3")),
+            agentic_rag_system_prompt=os.getenv(
+                "RAG_AGENTIC_SYSTEM_PROMPT",
+                "You are a helpful AI assistant. Based on the provided context from the knowledge base, "
+                "answer the user's question accurately and concisely. Only use information from the given "
+                "context. If the context doesn't contain enough information to answer the question, say so. "
+                "Do not make up or infer information that isn't in the context."
+            ),
         ),
     )
 

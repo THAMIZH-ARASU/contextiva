@@ -91,6 +91,7 @@ class RedisCacheService:
         query_text: str,
         use_hybrid: bool,
         use_rerank: bool,
+        use_agentic: bool,
         top_k: int,
         prefix: str,
     ) -> str:
@@ -103,6 +104,7 @@ class RedisCacheService:
             query_text: Query text
             use_hybrid: Whether hybrid search is enabled
             use_rerank: Whether re-ranking is enabled
+            use_agentic: Whether agentic RAG (synthesis) is enabled
             top_k: Number of results requested
             prefix: Cache key prefix from settings
 
@@ -113,7 +115,7 @@ class RedisCacheService:
         query_hash = hashlib.sha256(query_text.encode()).hexdigest()[:16]
 
         # Build cache key
-        key = f"{prefix}{project_id}:{query_hash}:{use_hybrid}:{use_rerank}:{top_k}"
+        key = f"{prefix}{project_id}:{query_hash}:{use_hybrid}:{use_rerank}:{use_agentic}:{top_k}"
         return key
 
     async def close(self) -> None:

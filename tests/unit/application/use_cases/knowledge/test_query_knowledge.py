@@ -583,3 +583,299 @@ class TestQueryKnowledgeUseCase:
                 query_text="test query",
                 user_id=uuid4(),  # Different from sample_project.owner_id
             )
+
+
+# ==================== STORY 3.3: Agentic RAG Tests ====================
+
+
+@pytest.mark.asyncio
+async def test_execute_with_agentic_rag_true_returns_synthesized_answer(
+    mock_knowledge_repo,
+    mock_project_repo,
+    mock_settings,
+    mock_cache_service,
+):
+    """Test that use_agentic_rag=true returns synthesized answer."""
+    # Arrange
+    project_id = uuid4()
+    user_id = uuid4()
+    query_text = "What is Python?"
+    
+    # Mock project
+    project = Project(
+        id=project_id,
+        name="Test Project",
+        description="Test",
+        owner_id=user_id,
+    )
+    mock_project_repo.get_by_id.return_value = project
+    
+    # Mock vector search results
+    knowledge_item = KnowledgeItem(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_text="Python is a programming language.",
+        chunk_index=0,
+        embedding=[0.1] * 1536,
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+    mock_knowledge_repo.vector_search.return_value = [(knowledge_item, 0.95)]
+    
+    # Mock cache
+    mock_cache_service.get.return_value = None
+    mock_cache_service.generate_cache_key.return_value = "test-cache-key"
+    
+    # Mock agentic RAG settings
+    mock_settings.rag.use_agentic_rag = False  # Don't enable by default
+    mock_settings.rag.agentic_rag_model = "stable-code:3b-code-q5_K_M"
+    mock_settings.rag.agentic_rag_max_tokens = 1000
+    mock_settings.rag.agentic_rag_temperature = 0.3
+    mock_settings.rag.agentic_rag_system_prompt = "You are a helpful assistant."
+    
+    # Mock embedding and LLM providers
+    with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory") as mock_factory:
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed_text.return_value = [0.1] * 1536
+        
+        mock_llm_provider = AsyncMock()
+        expected_answer = "Python is a high-level programming language used for various applications."
+        mock_llm_provider.generate_completion.return_value = expected_answer
+        
+        mock_factory.get_embedding_provider.return_value = mock_embedding_provider
+        mock_factory.get_llm_provider.return_value = mock_llm_provider
+        
+        # Create use case
+        use_case = QueryKnowledgeUseCase(
+            knowledge_repo=mock_knowledge_repo,
+            project_repo=mock_project_repo,
+            settings=mock_settings,
+            cache_service=mock_cache_service,
+        )
+        
+        # Act
+        result = await use_case.execute(
+            project_id=project_id,
+            query_text=query_text,
+            user_id=user_id,
+            use_agentic_rag=True,  # Enable agentic RAG
+        )
+        
+        # Assert
+        assert result.synthesized_answer == expected_answer
+        assert result.total_results == 1
+        mock_llm_provider.generate_completion.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_execute_with_agentic_rag_false_no_synthesized_answer(
+    mock_knowledge_repo,
+    mock_project_repo,
+    mock_settings,
+    mock_cache_service,
+):
+    """Test that use_agentic_rag=false does NOT include synthesized answer."""
+    # Arrange
+    project_id = uuid4()
+    user_id = uuid4()
+    query_text = "What is Python?"
+    
+    # Mock project
+    project = Project(
+        id=project_id,
+        name="Test Project",
+        description="Test",
+        owner_id=user_id,
+    )
+    mock_project_repo.get_by_id.return_value = project
+    
+    # Mock vector search results
+    knowledge_item = KnowledgeItem(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_text="Python is a programming language.",
+        chunk_index=0,
+        embedding=[0.1] * 1536,
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+    mock_knowledge_repo.vector_search.return_value = [(knowledge_item, 0.95)]
+    
+    # Mock cache
+    mock_cache_service.get.return_value = None
+    mock_cache_service.generate_cache_key.return_value = "test-cache-key"
+    
+    # Mock settings
+    mock_settings.rag.use_agentic_rag = False
+    
+    # Mock embedding provider
+    with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory") as mock_factory:
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed_text.return_value = [0.1] * 1536
+        mock_factory.get_embedding_provider.return_value = mock_embedding_provider
+        
+        # Create use case
+        use_case = QueryKnowledgeUseCase(
+            knowledge_repo=mock_knowledge_repo,
+            project_repo=mock_project_repo,
+            settings=mock_settings,
+            cache_service=mock_cache_service,
+        )
+        
+        # Act
+        result = await use_case.execute(
+            project_id=project_id,
+            query_text=query_text,
+            user_id=user_id,
+            use_agentic_rag=False,  # Disabled
+        )
+        
+        # Assert
+        assert result.synthesized_answer is None
+        assert result.total_results == 1
+
+
+@pytest.mark.asyncio
+async def test_execute_synthesis_failure_does_not_fail_query(
+    mock_knowledge_repo,
+    mock_project_repo,
+    mock_settings,
+    mock_cache_service,
+):
+    """Test that synthesis service failure does not fail the query (graceful degradation)."""
+    # Arrange
+    project_id = uuid4()
+    user_id = uuid4()
+    query_text = "What is Python?"
+    
+    # Mock project
+    project = Project(
+        id=project_id,
+        name="Test Project",
+        description="Test",
+        owner_id=user_id,
+    )
+    mock_project_repo.get_by_id.return_value = project
+    
+    # Mock vector search results
+    knowledge_item = KnowledgeItem(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_text="Python is a programming language.",
+        chunk_index=0,
+        embedding=[0.1] * 1536,
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+    mock_knowledge_repo.vector_search.return_value = [(knowledge_item, 0.95)]
+    
+    # Mock cache
+    mock_cache_service.get.return_value = None
+    mock_cache_service.generate_cache_key.return_value = "test-cache-key"
+    
+    # Mock agentic RAG settings
+    mock_settings.rag.use_agentic_rag = False
+    mock_settings.rag.agentic_rag_model = "stable-code:3b-code-q5_K_M"
+    mock_settings.rag.agentic_rag_max_tokens = 1000
+    mock_settings.rag.agentic_rag_temperature = 0.3
+    mock_settings.rag.agentic_rag_system_prompt = "You are a helpful assistant."
+    
+    # Mock providers - LLM provider will raise exception
+    with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory") as mock_factory:
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed_text.return_value = [0.1] * 1536
+        
+        mock_llm_provider = AsyncMock()
+        mock_llm_provider.generate_completion.side_effect = Exception("LLM API error")
+        
+        mock_factory.get_embedding_provider.return_value = mock_embedding_provider
+        mock_factory.get_llm_provider.return_value = mock_llm_provider
+        
+        # Create use case
+        use_case = QueryKnowledgeUseCase(
+            knowledge_repo=mock_knowledge_repo,
+            project_repo=mock_project_repo,
+            settings=mock_settings,
+            cache_service=mock_cache_service,
+        )
+        
+        # Act
+        result = await use_case.execute(
+            project_id=project_id,
+            query_text=query_text,
+            user_id=user_id,
+            use_agentic_rag=True,  # Enable but it will fail
+        )
+        
+        # Assert - Query should still succeed with results
+        assert result.synthesized_answer is None  # Graceful degradation
+        assert result.total_results == 1  # Results still returned
+        assert len(result.results) == 1
+
+
+@pytest.mark.asyncio
+async def test_execute_synthesized_answer_none_when_disabled(
+    mock_knowledge_repo,
+    mock_project_repo,
+    mock_settings,
+    mock_cache_service,
+):
+    """Test that synthesized_answer is None when synthesis is disabled."""
+    # Arrange
+    project_id = uuid4()
+    user_id = uuid4()
+    query_text = "What is Python?"
+    
+    # Mock project
+    project = Project(
+        id=project_id,
+        name="Test Project",
+        description="Test",
+        owner_id=user_id,
+    )
+    mock_project_repo.get_by_id.return_value = project
+    
+    # Mock vector search results
+    knowledge_item = KnowledgeItem(
+        id=uuid4(),
+        document_id=uuid4(),
+        chunk_text="Python is a programming language.",
+        chunk_index=0,
+        embedding=[0.1] * 1536,
+        metadata={},
+        created_at=datetime.now(timezone.utc),
+    )
+    mock_knowledge_repo.vector_search.return_value = [(knowledge_item, 0.95)]
+    
+    # Mock cache
+    mock_cache_service.get.return_value = None
+    mock_cache_service.generate_cache_key.return_value = "test-cache-key"
+    
+    # Mock settings - agentic RAG disabled
+    mock_settings.rag.use_agentic_rag = False
+    
+    # Mock embedding provider
+    with patch("src.application.use_cases.knowledge.query_knowledge.ProviderFactory") as mock_factory:
+        mock_embedding_provider = AsyncMock()
+        mock_embedding_provider.embed_text.return_value = [0.1] * 1536
+        mock_factory.get_embedding_provider.return_value = mock_embedding_provider
+        
+        # Create use case
+        use_case = QueryKnowledgeUseCase(
+            knowledge_repo=mock_knowledge_repo,
+            project_repo=mock_project_repo,
+            settings=mock_settings,
+            cache_service=mock_cache_service,
+        )
+        
+        # Act
+        result = await use_case.execute(
+            project_id=project_id,
+            query_text=query_text,
+            user_id=user_id,
+            # Don't pass use_agentic_rag, should default to False
+        )
+        
+        # Assert
+        assert result.synthesized_answer is None
+        assert result.total_results == 1

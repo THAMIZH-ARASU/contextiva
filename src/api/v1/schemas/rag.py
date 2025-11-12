@@ -37,6 +37,10 @@ class RAGQueryRequest(BaseModel):
         False,
         description="Enable LLM-based re-ranking of search results"
     )
+    use_agentic_rag: bool = Field(
+        False,
+        description="Enable agentic RAG to generate a synthesized natural language answer"
+    )
 
 
 class KnowledgeItemResult(BaseModel):
@@ -96,4 +100,8 @@ class RAGQueryResponse(BaseModel):
         ...,
         description="Total number of results returned",
         ge=0
+    )
+    synthesized_answer: Optional[str] = Field(
+        None,
+        description="Optional synthesized natural language answer (when use_agentic_rag=true)"
     )
