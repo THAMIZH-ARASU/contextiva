@@ -13,19 +13,6 @@ services:
     volumes:
       - ./:/app
 
-  mcp:
-    build: .
-    command: poetry run python -m src.mcp.server
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      - ./:/app
-
   postgres:
     image: ankane/pgvector:latest
     environment:
